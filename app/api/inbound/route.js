@@ -135,7 +135,7 @@ export async function POST(request) {
     return ok({ events: events.length });
   } catch (err) {
     // The email is saved, so nothing is lost. processed_at stays empty so you can find and retry it.
-    console.error(`Email ${email.id}: extraction failed`, err);
+    console.error(`Email ${email.id}: extraction failed - ${err.message}`);
     return ok({ extractionFailed: true });
   }
 }
