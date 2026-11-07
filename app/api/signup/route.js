@@ -1,9 +1,9 @@
-// Receives the signup form.
-//
-// For now this validates the submission and writes it to your Vercel logs
-// (Vercel dashboard → your project → Logs). That's enough to show carriers a
-// working opt-in flow. Before real parents sign up, connect Supabase here so
-// signups (and the consent timestamp) are saved permanently.
+// Receives the signup form, saves the parent (and their text-message consent)
+// to Supabase, and returns their personal forwarding address.
+
+import { insert, select } from "@/lib/db";
+
+const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || "inbox.heybellio.com";
 
 export async function POST(request) {
   let body;
@@ -14,7 +14,7 @@ export async function POST(request) {
   }
 
   const firstName = String(body.firstName || "").trim();
-  const email = String(body.email || "").trim();
+  const email = String(body.email || "").trim().toLowerCase();
   const phoneDigits = String(body.phone || "").replace(/\D/g, "");
 
   if (!firstName) {
@@ -33,17 +33,34 @@ export async function POST(request) {
     );
   }
 
-  const signup = {
-    firstName,
-    email,
-    phone: "+1" + phoneDigits.slice(-10),
-    smsConsent: true,
-    consentAt: new Date().toISOString(),
-    // Keep a record of how consent was collected; carriers can ask for it.
-    consentSource: "heybellio.com signup form",
-  };
+  const phone = "+1" + phoneDigits.slice(-10);
 
-  console.log("New signup:", JSON.stringify(signup));
+  try {
+    const existing = await select("parents", { phone });
+    if (existing.length) {
+      return Response.json(
+        { error: `That number is already signed up. Questions? Email hello@heybellio.com.` },
+        { status: 409 }
+      );
+    }
 
-  return Response.json({ ok: true });
+    const [parent] = await insert("parents", {
+      first_name: firstName,
+      email,
+      phone,
+      sms_consent: true,
+      consent_at: new Date().toISOString(),
+      // Keep a record of how consent was collected; carriers can ask for it.
+      consent_source: "heybellio.com signup form",
+    });
+
+    console.log("New signup:", parent.id);
+    return Response.json({ ok: true, forwardingAddress: `${parent.inbox_key}@${INBOUND_DOMAIN}` });
+  } catch (err) {
+    console.error("Signup failed:", err);
+    return Response.json(
+      { error: "Something went wrong saving your signup. Please try again." },
+      { status: 500 }
+    );
+  }
 }

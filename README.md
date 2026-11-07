@@ -23,7 +23,7 @@ Open `site.config.js` and update:
 
 ## 4. Seeing signups
 
-For now, signups appear in Vercel under your project's **Logs** (search "New signup"). That's enough for carrier review. Before real parents join, connect Supabase in `app/api/signup/route.js` so signups and consent records are saved permanently.
+Signups are saved in Supabase → Table Editor → `parents`, along with when and how each parent agreed to texts. Forwarded emails land in `emails`, and the dates the AI finds land in `events`.
 
 ## Run it locally (optional)
 
@@ -44,3 +44,12 @@ Then open http://localhost:3000.
 - `site.config.js` — your details, used everywhere
 
 The privacy policy and SMS terms are a solid starting draft, not legal advice. Worth a quick review before you charge money.
+
+## Email processing (step 4)
+
+- `app/api/inbound/route.js` — Postmark posts forwarded emails here. It finds the parent by their address (`<inbox_key>@inbox.heybellio.com`), saves the email, asks Claude for dated events, and saves them.
+- `lib/extract.js` — the AI instructions and the call to Claude. Tweak `SYSTEM_PROMPT` to change what gets picked up.
+- `lib/db.js` — small helper for reading and writing Supabase.
+- `.env.example` — the settings Vercel needs (put real values in Vercel, never in GitHub).
+
+Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBHOOK_SECRET`

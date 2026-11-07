@@ -7,6 +7,7 @@ import site from "@/site.config";
 export default function SignupForm() {
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
   const [error, setError] = useState("");
+  const [address, setAddress] = useState("");
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -22,6 +23,7 @@ export default function SignupForm() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Something went wrong.");
+      setAddress(body.forwardingAddress || "");
       setStatus("done");
       form.reset();
     } catch (err) {
@@ -33,11 +35,22 @@ export default function SignupForm() {
   if (status === "done") {
     return (
       <div className="form-card success" role="status">
-        <h3>You&rsquo;re on the list!</h3>
-        <p>
-          We&rsquo;ll be in touch soon with your forwarding address and setup
-          steps.
-        </p>
+        <h3>You&rsquo;re in!</h3>
+        {address ? (
+          <>
+            <p>Forward your school emails to your personal Bellio address:</p>
+            <p className="forward-address">{address}</p>
+            <p>
+              We&rsquo;ll text you the night before anything you need to know
+              or do. Setup tips for automatic forwarding are on the way.
+            </p>
+          </>
+        ) : (
+          <p>
+            We&rsquo;ll be in touch soon with your forwarding address and setup
+            steps.
+          </p>
+        )}
       </div>
     );
   }
