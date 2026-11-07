@@ -7,12 +7,12 @@ const site = {
   contactEmail: "hello@heybellio.com",
   // Your legal business name. A sole proprietorship can just be your own name,
   // e.g. "Jane Smith d/b/a Bellio".
-  legalName: "Bellio",
+  legalName: "Lance Schmittling",
   // State whose laws govern the terms.
-  governingState: "Missouri",
+  governingState: "Kansas",
   // Fill in once Twilio gives you the number.
   smsNumber: "(XXX) XXX-XXXX",
-  lastUpdated: "November 6, 2026",
+  lastUpdated: "November 7, 2026",
 };
 
 export default site;
