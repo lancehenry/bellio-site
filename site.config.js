@@ -11,7 +11,7 @@ const site = {
   // State whose laws govern the terms.
   governingState: "Kansas",
   // Fill in once Twilio gives you the number.
-  smsNumber: "(XXX) XXX-XXXX",
+  smsNumber: "(866) 456-3681",
   lastUpdated: "November 7, 2026",
 };
 
