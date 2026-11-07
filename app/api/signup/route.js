@@ -2,6 +2,7 @@
 // to Supabase, and returns their personal forwarding address.
 
 import { insert, select } from "@/lib/db";
+import { sendSms } from "@/lib/sms";
 
 const INBOUND_DOMAIN = process.env.INBOUND_DOMAIN || "inbox.heybellio.com";
 
@@ -55,7 +56,22 @@ export async function POST(request) {
     });
 
     console.log("New signup:", parent.id);
-    return Response.json({ ok: true, forwardingAddress: `${parent.inbox_key}@${INBOUND_DOMAIN}` });
+    const forwardingAddress = `${parent.inbox_key}@${INBOUND_DOMAIN}`;
+
+    // Welcome text. (Only actually sent once SMS_SENDING_ENABLED is on.)
+    // A failed text should never break signup, so errors are just logged.
+    try {
+      await sendSms(
+        parent,
+        `Bellio: Welcome, ${firstName}! Forward school emails to ${forwardingAddress} or text a photo of a flyer here. ` +
+          `We'll text you the night before anything you need to know. Save this number as "Bellio". ` +
+          `Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel.`
+      );
+    } catch (err) {
+      console.error(`Welcome text to parent ${parent.id} failed: ${err.message}`);
+    }
+
+    return Response.json({ ok: true, forwardingAddress });
   } catch (err) {
     console.error("Signup failed:", err);
     return Response.json(
