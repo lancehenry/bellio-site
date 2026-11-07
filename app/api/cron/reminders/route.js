@@ -55,7 +55,8 @@ export async function GET(request) {
     );
     if (!events.length) continue;
 
-    const body = await composeMessage(events, date);
+    const kids = await query("kids", `parent_id=eq.${parent.id}&select=first_name`);
+    const body = await composeMessage(events, date, kids);
     const result = { parent: parent.first_name, phone: `...${parent.phone.slice(-4)}`, date, events: events.length, body };
 
     if (sendForReal) {
