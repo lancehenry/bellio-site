@@ -5,7 +5,7 @@
 // Postmark webhook URL (set in Postmark → Default Inbound Stream → Settings):
 //   https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBHOOK_SECRET
 
-import { insert, select, update } from "@/lib/db";
+import { insert, query, select, update } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
 
 export const maxDuration = 60; // give Claude time to read long PDFs
@@ -46,6 +46,49 @@ function htmlToText(html = "") {
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n+/g, "\n\n")
     .trim();
+}
+
+// --- Duplicate detection -------------------------------------------------
+// Parents forward the same email twice, or schools repeat dates across emails.
+// Two events are treated as the same if they're on the same date and their
+// titles share most of their words ("Field trip to the Coterie" vs
+// "Coterie Theater field trip").
+const STOP_WORDS = new Set(["the", "a", "an", "to", "of", "for", "and", "at", "in", "on", "is", "no"]);
+
+function titleWords(title = "") {
+  return new Set(
+    title
+      .toLowerCase()
+      .replace(/['’]/g, "")
+      .replace(/[^a-z0-9]+/g, " ")
+      .split(" ")
+      .filter((w) => w && !STOP_WORDS.has(w))
+  );
+}
+
+function sameEvent(a, b) {
+  if (a.date !== b.date) return false;
+  const wa = titleWords(a.title);
+  const wb = titleWords(b.title);
+  if (!wa.size || !wb.size) return false;
+  let shared = 0;
+  for (const w of wa) if (wb.has(w)) shared++;
+  return shared / Math.min(wa.size, wb.size) >= 0.6;
+}
+
+async function removeDuplicates(parentId, events) {
+  if (!events.length) return { fresh: [], dupes: 0 };
+  const dates = [...new Set(events.map((e) => e.date))].join(",");
+  const existing = (
+    await query("events", `parent_id=eq.${parentId}&event_date=in.(${dates})&select=event_date,title`)
+  ).map((e) => ({ date: e.event_date, title: e.title }));
+
+  const fresh = [];
+  for (const e of events) {
+    const isDupe = [...existing, ...fresh].some((x) => sameEvent(x, e));
+    if (!isDupe) fresh.push(e);
+  }
+  return { fresh, dupes: events.length - fresh.length };
 }
 
 // Always answer 200 once we've handled (or deliberately ignored) an email,
@@ -111,14 +154,17 @@ export async function POST(request) {
       from: msg.From,
       sentAt: msg.Date || new Date().toUTCString(),
       bodyText,
+      htmlBody: msg.HtmlBody,
       attachments,
       kids,
     });
 
-    if (events.length) {
+    const { fresh, dupes } = await removeDuplicates(parent.id, events);
+
+    if (fresh.length) {
       await insert(
         "events",
-        events.map((e) => ({
+        fresh.map((e) => ({
           parent_id: parent.id,
           email_id: email.id,
           event_date: e.date,
@@ -131,8 +177,12 @@ export async function POST(request) {
     }
 
     await update("emails", { id: email.id }, { processed_at: new Date().toISOString() });
-    console.log(`Email ${email.id}: saved ${events.length} event(s)` + (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : ""));
-    return ok({ events: events.length });
+    console.log(
+      `Email ${email.id}: saved ${fresh.length} event(s)` +
+        (dupes ? `, skipped ${dupes} duplicate(s)` : "") +
+        (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "")
+    );
+    return ok({ events: fresh.length, duplicates: dupes });
   } catch (err) {
     // The email is saved, so nothing is lost. processed_at stays empty so you can find and retry it.
     console.error(`Email ${email.id}: extraction failed - ${err.message}`);
