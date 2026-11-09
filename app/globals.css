@@ -262,6 +262,10 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
   .join-inner { grid-template-columns: 1fr; gap: 32px; }
 }
 
+/* Bot checks: honeypot hidden from people (not display:none, which some bots skip) */
+.hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+.cf-turnstile { min-height: 65px; }
+
 /* Legal pages */
 .legal { max-width: 760px; padding-top: 48px; padding-bottom: 80px; }
 .legal h1 { font-size: 2.3rem; }

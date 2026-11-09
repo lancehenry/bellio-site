@@ -4,6 +4,15 @@
 
 import { insert, select, update } from "@/lib/db";
 import { sendSms } from "@/lib/sms";
+import { recordConsent } from "@/lib/consent";
+import {
+  LIMITS,
+  clientIp,
+  isHoneypotFilled,
+  mayTextFromForm,
+  overLimit,
+  passedTurnstile,
+} from "@/lib/protect";
 import {
   addKids,
   cleanKids,
@@ -30,6 +39,25 @@ export async function POST(request) {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Bot checks first. A filled-in honeypot gets a fake "success" so the bot learns nothing.
+  if (isHoneypotFilled(body)) {
+    console.warn("Signup honeypot triggered; ignoring.");
+    return Response.json({ ok: true });
+  }
+  const ip = clientIp(request);
+  if (await overLimit(LIMITS.signupPerIp, ip)) {
+    return Response.json(
+      { error: "Too many signups from this connection. Please try again in an hour." },
+      { status: 429 }
+    );
+  }
+  if (!(await passedTurnstile(body.turnstileToken, ip))) {
+    return Response.json(
+      { error: "We couldn't confirm you're not a robot. Please refresh the page and try again." },
+      { status: 400 }
+    );
   }
 
   const firstName = String(body.firstName || "").trim();
@@ -93,9 +121,13 @@ export async function POST(request) {
       });
     } catch (err) {
       // Don't leave an empty household behind if the member couldn't be saved.
-      await update("households", { id: household.id }, { subscription_status: "canceled" }).catch(() => {});
+      await update("households", { id: household.id }, {
+        subscription_status: "canceled",
+        canceled_at: new Date().toISOString(),
+      }).catch(() => {});
       throw err;
     }
+    await recordConsent(phone, "opt_in", "web_signup", household.id);
     await addKids(household.id, kids);
 
     console.log(`New family ${household.id} with ${kids.length} kid(s)`);
@@ -108,9 +140,12 @@ export async function POST(request) {
     }
 
     // Welcome text. (Only actually sent once SMS_SENDING_ENABLED is on.)
-    // A failed text should never break signup, so errors are just logged.
+    // Limited per phone and per day so bots can't run up the texting bill.
+    // A failed or skipped text never breaks signup; errors are just logged.
     try {
-      await sendSms(
+      if (!(await mayTextFromForm(phone))) {
+        console.warn(`Welcome text to member ${member.id} skipped (rate limit).`);
+      } else await sendSms(
         member,
         `Bellio: Welcome, ${firstName}! Forward school emails to ${address} or text a photo of a flyer here. ` +
           `We'll text you the night before anything you need to know. Save this number as "Bellio". ` +

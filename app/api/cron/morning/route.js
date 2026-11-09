@@ -1,6 +1,10 @@
-// The morning catch-up job. Vercel runs it early each morning (see vercel.json).
-// It texts any of TODAY's events that haven't been sent yet: usually ones from
-// emails that arrived after last night's text went out (Sunday-night newsletters!).
+// The morning job. Vercel runs it early each morning (see vercel.json).
+//   1. Texts any of TODAY's events that haven't been sent yet: usually ones from
+//      emails that arrived after last night's text went out (Sunday-night newsletters!).
+//   2. Runs the daily data cleanup (bellio_purge in the database): wipes old email
+//      contents, deletes old events, texts, invites, and canceled families.
+//
+// Run the cleanup by hand: add &cleanup=1 to the link below.
 //
 // Preview in your browser any time, without texting anyone:
 //   https://www.heybellio.com/api/cron/morning?key=YOUR_CRON_SECRET
@@ -8,7 +12,7 @@
 //
 // Nothing is actually texted unless SMS_SENDING_ENABLED=true in Vercel.
 
-import { query } from "@/lib/db";
+import { query, rpc } from "@/lib/db";
 import { smsEnabled } from "@/lib/sms";
 import { localNow, sendFamilyReminder } from "@/lib/reminders";
 
@@ -43,7 +47,21 @@ export async function GET(request) {
   }
 
   console.log(`Morning catch-up: ${results.length} famil(ies) with unsent items, sending ${sendForReal && smsEnabled() ? "on" : "off"}`);
+
+  // Daily cleanup (only on the real morning run, or when asked for with &cleanup=1).
+  let cleanup = null;
+  if (fromVercelCron || url.searchParams.get("cleanup") === "1") {
+    try {
+      cleanup = await rpc("bellio_purge");
+      console.log("Daily cleanup:", JSON.stringify(cleanup));
+    } catch (err) {
+      console.error(`Daily cleanup failed: ${err.message}`);
+      cleanup = { error: err.message };
+    }
+  }
+
   return Response.json({
+    ...(cleanup ? { cleanup } : {}),
     mode: sendForReal ? (smsEnabled() ? "sent" : "dry run (SMS_SENDING_ENABLED is off)") : "preview",
     familiesChecked: households.length,
     messages: results,

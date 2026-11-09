@@ -12,6 +12,7 @@ import { existingForPrompt, saveEvents } from "@/lib/events";
 import { getKids, getTextableMembers } from "@/lib/households";
 import { sendSms } from "@/lib/sms";
 import { handleLateArrivals } from "@/lib/reminders";
+import { LIMITS, overLimit } from "@/lib/protect";
 
 // Newsletters with many flyers and calendars can take a minute or more for the AI to read.
 // We reply to Postmark right away and keep working in the background for up to 5 minutes.
@@ -85,6 +86,13 @@ export async function POST(request) {
   if (!household) {
     console.log("Inbound email for unknown inbox key:", inboxKey);
     return ok({ ignored: "unknown household" });
+  }
+
+  // A real family forwards a handful of emails a day. Far more than that is
+  // a forwarding loop or abuse, and each email costs an AI call.
+  if (await overLimit(LIMITS.emailsPerFamily, household.id)) {
+    console.warn(`Family ${household.id} hit the daily email limit; ignoring this one.`);
+    return ok({ ignored: "daily email limit" });
   }
 
   const fromAddress = (msg.FromFull?.Email || msg.From || "").toLowerCase();

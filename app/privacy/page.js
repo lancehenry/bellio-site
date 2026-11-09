@@ -83,16 +83,52 @@ export default function Privacy() {
       <p>
         We share information only with service providers that help us run{" "}
         {site.name}, such as our hosting, database, email-receiving, AI
-        processing, text messaging, and payment providers. They may use it
+        processing, text messaging, bot protection, and payment providers. They may use it
         only to provide their services to us. We may also disclose information
         if required by law.
       </p>
 
       <h2>How long we keep it</h2>
       <p>
-        We keep forwarded emails and extracted events only as long as needed to
-        send your reminders and show where each one came from. You can delete
-        your account and data at any time.
+        We keep as little as we can, for as short a time as we can. Deletion
+        happens automatically every day:
+      </p>
+      <ul>
+        <li>
+          <strong>Forwarded emails and flyer photos:</strong> the contents are
+          erased about a day after we&rsquo;ve read them, and within 7 days at
+          most. A bare record that an email arrived is deleted after 30 days.
+        </li>
+        <li>
+          <strong>Reminders (dates and to-dos):</strong> deleted 30 days after
+          the date has passed.
+        </li>
+        <li>
+          <strong>Text message logs:</strong> deleted after 90 days.
+        </li>
+        <li>
+          <strong>Your account</strong> (family members, children&rsquo;s first
+          names, and everything above): deleted 30 days after you cancel.
+        </li>
+        <li>
+          <strong>Opt-in and opt-out records:</strong> kept for 4 years, even
+          after your account is deleted, as required to show that you agreed to
+          receive texts. These hold only your phone number, the date, and
+          whether you opted in or out.
+        </li>
+      </ul>
+      <p>
+        You can ask us to delete your account and data sooner at any time.
+      </p>
+
+      <h2>Bot and abuse protection</h2>
+      <p>
+        To keep out automated signups, we use Cloudflare Turnstile on our forms
+        and limit how often forms can be submitted. Turnstile may process
+        technical information about your browser and connection under{" "}
+        <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare&rsquo;s privacy policy</a>.
+        For rate limiting we store a scrambled (hashed) version of your IP
+        address and phone number for no more than 2 days.
       </p>
 
       <h2>Your choices</h2>

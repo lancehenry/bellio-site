@@ -69,3 +69,10 @@ Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBH
 - **Late arrivals:** `lib/reminders.js`. Emails/photos arriving 8–9:30pm with items for tomorrow, or 6am–2pm with items for today, are texted right away.
 - **Week-ahead heads-ups:** no-school days, breaks, and early releases get a "Coming up" reminder a week before (`lib/extract.js`).
 - Times shift an hour later during daylight saving time, and Vercel's free plan runs each job sometime within its hour.
+
+## Security and data cleanup (upgrade 004)
+
+- **Bot protection** (`lib/protect.js`, `app/BotCheck.js`): honeypot field, Cloudflare Turnstile, and rate limits (signups/joins per IP, form-triggered texts per phone and per day, invites, photos, emails per family, replies to unknown numbers).
+- **Consent log** (`lib/consent.js`): every opt-in/opt-out is kept 4 years in `consent_events`, even after an account is deleted.
+- **Daily cleanup**: `bellio_purge()` in the database, run by the morning job. Wipes email contents after a day (7 days max), deletes events 30 days after they pass, text logs after 90 days, canceled families 30 days after canceling.
+- Run `supabase/migration-004-security-cleanup.sql` once, after 002 and 003.

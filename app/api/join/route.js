@@ -4,6 +4,15 @@
 
 import { insert, update, updateWhere } from "@/lib/db";
 import { sendSms } from "@/lib/sms";
+import { recordConsent } from "@/lib/consent";
+import {
+  LIMITS,
+  clientIp,
+  isHoneypotFilled,
+  mayTextFromForm,
+  overLimit,
+  passedTurnstile,
+} from "@/lib/protect";
 import {
   FULL_FAMILY_MESSAGE,
   INVITE_PROBLEMS,
@@ -22,6 +31,25 @@ export async function POST(request) {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  // Bot checks first. A filled-in honeypot gets a fake "success" so the bot learns nothing.
+  if (isHoneypotFilled(body)) {
+    console.warn("Join honeypot triggered; ignoring.");
+    return Response.json({ ok: true });
+  }
+  const ip = clientIp(request);
+  if (await overLimit(LIMITS.joinPerIp, ip)) {
+    return Response.json(
+      { error: "Too many attempts from this connection. Please try again in an hour." },
+      { status: 429 }
+    );
+  }
+  if (!(await passedTurnstile(body.turnstileToken, ip))) {
+    return Response.json(
+      { error: "We couldn't confirm you're not a robot. Please refresh the page and try again." },
+      { status: 400 }
+    );
   }
 
   const code = String(body.code || "").trim();
@@ -95,14 +123,20 @@ export async function POST(request) {
       throw err;
     }
     await update("invites", { id: invite.id }, { used_by: member.id }).catch(() => {});
+    await recordConsent(phone, "opt_in", "invite_link", household.id);
 
     const kids = await getKids(household.id);
     const kidNames = kids.map((k) => k.first_name).join(" & ");
     const address = forwardingAddress(household);
     console.log(`Member ${member.id} joined family ${household.id}`);
 
-    // Texts (only actually sent once SMS_SENDING_ENABLED is on). Failures are just logged.
+    // Texts (only actually sent once SMS_SENDING_ENABLED is on), limited per phone
+    // and per day like signup. Failures or skips are just logged.
     try {
+      if (!(await mayTextFromForm(phone))) {
+        console.warn(`Join texts for member ${member.id} skipped (rate limit).`);
+        return Response.json({ ok: true, forwardingAddress: address, kids: kids.map((k) => k.first_name) });
+      }
       await sendSms(
         member,
         `Bellio: Welcome, ${firstName}! You'll get the same reminders as the rest of your family` +

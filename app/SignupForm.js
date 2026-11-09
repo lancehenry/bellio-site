@@ -3,6 +3,7 @@
 import { useState } from "react";
 import ConsentCheckbox from "./ConsentCheckbox";
 import CopyField from "./CopyField";
+import BotCheck, { botCheckFields, resetBotCheck } from "./BotCheck";
 
 const MAX_KIDS = 8;
 const emptyKid = () => ({ firstName: "", grade: "", school: "" });
@@ -34,6 +35,7 @@ export default function SignupForm() {
           phone: data.phone,
           smsConsent: data.smsConsent === "on",
           kids,
+          ...botCheckFields(data),
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -43,6 +45,7 @@ export default function SignupForm() {
     } catch (err) {
       setStatus("error");
       setError(err.message);
+      resetBotCheck();
     }
   }
 
@@ -50,8 +53,12 @@ export default function SignupForm() {
     return (
       <div className="form-card success" role="status">
         <h3>You&rsquo;re in!</h3>
-        <p>Forward your school emails to your family&rsquo;s Bellio address:</p>
-        <CopyField value={result.forwardingAddress} />
+        {result.forwardingAddress && (
+          <>
+            <p>Forward your school emails to your family&rsquo;s Bellio address:</p>
+            <CopyField value={result.forwardingAddress} />
+          </>
+        )}
         <p>
           We&rsquo;ll text you the night before anything you need to know or
           do. You can also text a photo of a paper flyer to our number.
@@ -129,6 +136,7 @@ export default function SignupForm() {
       </fieldset>
 
       <ConsentCheckbox />
+      <BotCheck />
 
       <button type="submit" className="btn" disabled={status === "sending"}>
         {status === "sending" ? "Signing up…" : "Sign up"}

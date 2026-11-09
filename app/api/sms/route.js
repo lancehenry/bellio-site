@@ -16,6 +16,8 @@ import { existingForPrompt, saveEvents } from "@/lib/events";
 import { dayLabel } from "@/lib/compose";
 import { isValidTwilioRequest, sendSms, twiml, twilioAuthHeader } from "@/lib/sms";
 import { handleLateArrivals } from "@/lib/reminders";
+import { recordConsent } from "@/lib/consent";
+import { LIMITS, overLimit } from "@/lib/protect";
 import {
   FULL_FAMILY_MESSAGE,
   INVITE_DAYS,
@@ -69,11 +71,15 @@ export async function POST(request) {
   // 2. Opt-out and opt-in, for this one person only. Twilio sends the confirmation text.
   if (optOutType === "STOP" || STOP_WORDS.includes(keyword)) {
     if (member) await update("members", { id: member.id }, { sms_opted_out: true });
+    await recordConsent(from, "opt_out", "sms_reply", member?.household_id);
     console.log(`Opt-out from ...${from.slice(-4)}`);
     return twiml();
   }
   if (optOutType === "START" || START_WORDS.includes(keyword)) {
-    if (member) await update("members", { id: member.id }, { sms_opted_out: false });
+    if (member) {
+      await update("members", { id: member.id }, { sms_opted_out: false });
+      await recordConsent(from, "opt_in", "sms_reply", member.household_id);
+    }
     console.log(`Opt-in from ...${from.slice(-4)}`);
     return twiml();
   }
@@ -81,8 +87,10 @@ export async function POST(request) {
     return twiml(HELP_TEXT);
   }
 
-  // 3. Someone who hasn't signed up.
+  // 3. Someone who hasn't signed up: one polite reply per number per day, so
+  //    nobody can make us pay for a stream of replies.
   if (!member) {
+    if (await overLimit(LIMITS.strangerReplyPerPhone, from)) return twiml();
     return twiml("Bellio: This number sends school reminders to parents who sign up at heybellio.com.");
   }
 
@@ -94,6 +102,9 @@ export async function POST(request) {
     if (members.length >= MAX_MEMBERS) {
       return twiml(`Bellio: ${FULL_FAMILY_MESSAGE}`);
     }
+    if (await overLimit(LIMITS.invitePerMember, member.id)) {
+      return twiml("Bellio: You've asked for several invite links today. Please try again tomorrow.");
+    }
     const invite = await createInvite(household.id, member.id);
     return twiml(
       `Bellio: Send this link to your co-parent so they get the same reminders: ${inviteUrl(invite)} ` +
@@ -104,6 +115,9 @@ export async function POST(request) {
   // 5. A photo of a flyer: read it after replying, since that can take a little while.
   const mediaCount = Number(params.NumMedia || 0);
   if (mediaCount > 0) {
+    if (await overLimit(LIMITS.photosPerMember, member.id)) {
+      return twiml("Bellio: You've sent a lot of photos today. Please try again tomorrow, or forward the email instead.");
+    }
     after(() => processPhotos(member, household, params, mediaCount, body));
     return twiml();
   }
