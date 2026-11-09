@@ -12,7 +12,7 @@
 import { after } from "next/server";
 import { insert, select, update } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
-import { saveEvents } from "@/lib/events";
+import { existingForPrompt, saveEvents } from "@/lib/events";
 import { dayLabel } from "@/lib/compose";
 import { isValidTwilioRequest, sendSms, twiml, twilioAuthHeader } from "@/lib/sms";
 import { handleLateArrivals } from "@/lib/reminders";
@@ -149,6 +149,7 @@ async function processPhotos(member, household, params, mediaCount, caption) {
       bodyText: caption ? `Parent's note: ${caption}` : "",
       attachments,
       kids,
+      existing: await existingForPrompt(household.id, kids),
     });
     const { saved, dupes, merged } = await saveEvents(household.id, email.id, events);
     await update("emails", { id: email.id }, { processed_at: new Date().toISOString() });

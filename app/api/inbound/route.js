@@ -8,7 +8,7 @@
 import { after } from "next/server";
 import { insert, select, update } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
-import { saveEvents } from "@/lib/events";
+import { existingForPrompt, saveEvents } from "@/lib/events";
 import { getKids, getTextableMembers } from "@/lib/households";
 import { sendSms } from "@/lib/sms";
 import { handleLateArrivals } from "@/lib/reminders";
@@ -136,6 +136,7 @@ async function processEmail(email, household, msg, bodyText, attachments) {
       htmlBody: msg.HtmlBody,
       attachments,
       kids,
+      existing: await existingForPrompt(household.id, kids),
     });
 
     const { saved: fresh, dupes, merged } = await saveEvents(household.id, email.id, events);
