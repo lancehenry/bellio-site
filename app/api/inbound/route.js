@@ -5,13 +5,16 @@
 // Postmark webhook URL (set in Postmark → Default Inbound Stream → Settings):
 //   https://www.heybellio.com/api/inbound?token=YOUR_INBOUND_WEBHOOK_SECRET
 
+import { after } from "next/server";
 import { insert, select, update } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
 import { saveEvents } from "@/lib/events";
 import { getKids, getTextableMembers } from "@/lib/households";
 import { sendSms } from "@/lib/sms";
 
-export const maxDuration = 60; // give Claude time to read long PDFs
+// Newsletters with many flyers and calendars can take a minute or more for the AI to read.
+// We reply to Postmark right away and keep working in the background for up to 5 minutes.
+export const maxDuration = 300;
 
 const INBOUND_DOMAIN = (process.env.INBOUND_DOMAIN || "inbox.heybellio.com").toLowerCase();
 
@@ -115,7 +118,13 @@ export async function POST(request) {
     return ok({ gmailConfirmation: true });
   }
 
-  // 5. Ask Claude for the dates and to-dos.
+  // 5. Ask Claude for the dates and to-dos, after telling Postmark we've got the email.
+  after(() => processEmail(email, household, msg, bodyText, attachments));
+  return ok({ queued: true });
+}
+
+async function processEmail(email, household, msg, bodyText, attachments) {
+  const started = Date.now();
   try {
     const kids = await getKids(household.id);
     const { events, skipped } = await extractEvents({
@@ -135,12 +144,11 @@ export async function POST(request) {
       `Email ${email.id}: saved ${fresh.length} event(s)` +
         (dupes ? `, skipped ${dupes} duplicate(s)` : "") +
         (merged ? `, added a child to ${merged} existing event(s)` : "") +
-        (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "")
+        (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "") +
+        ` (${Math.round((Date.now() - started) / 1000)}s)`
     );
-    return ok({ events: fresh.length, duplicates: dupes });
   } catch (err) {
     // The email is saved, so nothing is lost. processed_at stays empty so you can find and retry it.
     console.error(`Email ${email.id}: extraction failed - ${err.message}`);
-    return ok({ extractionFailed: true });
   }
 }
