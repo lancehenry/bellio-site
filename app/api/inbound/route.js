@@ -11,6 +11,7 @@ import { extractEvents } from "@/lib/extract";
 import { saveEvents } from "@/lib/events";
 import { getKids, getTextableMembers } from "@/lib/households";
 import { sendSms } from "@/lib/sms";
+import { handleLateArrivals } from "@/lib/reminders";
 
 // Newsletters with many flyers and calendars can take a minute or more for the AI to read.
 // We reply to Postmark right away and keep working in the background for up to 5 minutes.
@@ -147,6 +148,9 @@ async function processEmail(email, household, msg, bodyText, attachments) {
         (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "") +
         ` (${Math.round((Date.now() - started) / 1000)}s)`
     );
+
+    // If this email came in after tonight's text (or has something for today), send it now.
+    await handleLateArrivals(household, fresh);
   } catch (err) {
     // The email is saved, so nothing is lost. processed_at stays empty so you can find and retry it.
     console.error(`Email ${email.id}: extraction failed - ${err.message}`);

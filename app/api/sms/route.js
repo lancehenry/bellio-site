@@ -15,6 +15,7 @@ import { extractEvents } from "@/lib/extract";
 import { saveEvents } from "@/lib/events";
 import { dayLabel } from "@/lib/compose";
 import { isValidTwilioRequest, sendSms, twiml, twilioAuthHeader } from "@/lib/sms";
+import { handleLateArrivals } from "@/lib/reminders";
 import {
   FULL_FAMILY_MESSAGE,
   INVITE_DAYS,
@@ -173,6 +174,9 @@ async function processPhotos(member, household, params, mediaCount, caption) {
       reply = "Bellio: I couldn't find any dates on that photo. Try a clearer, closer shot of the flyer.";
     }
     await sendSms(member, reply);
+
+    // If the flyer has something for tomorrow (after tonight's text) or today, send it now.
+    await handleLateArrivals(household, saved);
   } catch (err) {
     console.error(`Processing texted photo from member ${member.id} failed: ${err.message}`);
   }

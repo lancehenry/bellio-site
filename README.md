@@ -61,3 +61,11 @@ Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBH
 - Kids are added at signup (first name, optional grade and school). The AI tags each event with the right kid(s); the nightly text groups items by kid when there's more than one.
 - `supabase/migration-002-households.sql` upgrades an existing database. `supabase/schema.sql` is the full current setup for a brand-new project.
 - Key files: `lib/households.js`, `lib/events.js`, `lib/compose.js`, `app/api/join/route.js`, `app/join/[code]/`.
+
+## Reminder timing
+
+- **Nightly (about 7pm Central):** `app/api/cron/reminders`, tomorrow's items. Preview: `/api/cron/reminders?key=CRON_SECRET&date=YYYY-MM-DD`
+- **Morning catch-up (about 6am Central):** `app/api/cron/morning`, today's items that missed last night's text (e.g. Sunday-night newsletters). Preview: `/api/cron/morning?key=CRON_SECRET&date=YYYY-MM-DD`
+- **Late arrivals:** `lib/reminders.js`. Emails/photos arriving 8–9:30pm with items for tomorrow, or 6am–2pm with items for today, are texted right away.
+- **Week-ahead heads-ups:** no-school days, breaks, and early releases get a "Coming up" reminder a week before (`lib/extract.js`).
+- Times shift an hour later during daylight saving time, and Vercel's free plan runs each job sometime within its hour.
