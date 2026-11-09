@@ -53,3 +53,11 @@ The privacy policy and SMS terms are a solid starting draft, not legal advice. W
 - `.env.example` — the settings Vercel needs (put real values in Vercel, never in GitHub).
 
 Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBHOOK_SECRET`
+
+## Households, co-parents, and kids (upgrade 002)
+
+- A **household** owns the forwarding address, kids, and events. Each parent is a **member** with their own phone, consent, and STOP.
+- Co-parents join through the invite link shown after signup (`/join/<code>`), or by texting **INVITE** to the Bellio number.
+- Kids are added at signup (first name, optional grade and school). The AI tags each event with the right kid(s); the nightly text groups items by kid when there's more than one.
+- `supabase/migration-002-households.sql` upgrades an existing database. `supabase/schema.sql` is the full current setup for a brand-new project.
+- Key files: `lib/households.js`, `lib/events.js`, `lib/compose.js`, `app/api/join/route.js`, `app/join/[code]/`.

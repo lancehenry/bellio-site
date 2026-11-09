@@ -1,13 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import site from "@/site.config";
+import ConsentCheckbox from "./ConsentCheckbox";
+import CopyField from "./CopyField";
+
+const MAX_KIDS = 8;
+const emptyKid = () => ({ firstName: "", grade: "", school: "" });
 
 export default function SignupForm() {
   const [status, setStatus] = useState("idle"); // idle | sending | done | error
   const [error, setError] = useState("");
-  const [address, setAddress] = useState("");
+  const [result, setResult] = useState(null);
+  const [kids, setKids] = useState([emptyKid()]);
+
+  const setKid = (i, field, value) =>
+    setKids((list) => list.map((k, j) => (j === i ? { ...k, [field]: value } : k)));
+  const addKid = () => setKids((list) => (list.length < MAX_KIDS ? [...list, emptyKid()] : list));
+  const removeKid = (i) => setKids((list) => list.filter((_, j) => j !== i));
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -19,37 +28,48 @@ export default function SignupForm() {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, smsConsent: data.smsConsent === "on" }),
+        body: JSON.stringify({
+          firstName: data.firstName,
+          email: data.email,
+          phone: data.phone,
+          smsConsent: data.smsConsent === "on",
+          kids,
+        }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.error || "Something went wrong.");
-      setAddress(body.forwardingAddress || "");
+      setResult(body);
       setStatus("done");
-      form.reset();
     } catch (err) {
       setStatus("error");
       setError(err.message);
     }
   }
 
-  if (status === "done") {
+  if (status === "done" && result) {
     return (
       <div className="form-card success" role="status">
         <h3>You&rsquo;re in!</h3>
-        {address ? (
+        <p>Forward your school emails to your family&rsquo;s Bellio address:</p>
+        <CopyField value={result.forwardingAddress} />
+        <p>
+          We&rsquo;ll text you the night before anything you need to know or
+          do. You can also text a photo of a paper flyer to our number.
+        </p>
+        {result.inviteUrl && (
           <>
-            <p>Forward your school emails to your personal Bellio address:</p>
-            <p className="forward-address">{address}</p>
+            <h4>Add a co-parent</h4>
             <p>
-              We&rsquo;ll text you the night before anything you need to know
-              or do. Setup tips for automatic forwarding are on the way.
+              Send them this link to get the same reminders on their own phone.
+              It works once and expires in 7 days. Need another? Text INVITE to
+              Bellio.
+            </p>
+            <CopyField value={result.inviteUrl} label="Copy link" />
+            <p className="hint">
+              Co-parent in a different home? They can join your family to share
+              reminders, or sign up on their own with a separate account.
             </p>
           </>
-        ) : (
-          <p>
-            We&rsquo;ll be in touch soon with your forwarding address and setup
-            steps.
-          </p>
         )}
       </div>
     );
@@ -58,7 +78,7 @@ export default function SignupForm() {
   return (
     <form className="form-card" onSubmit={onSubmit}>
       <label>
-        First name
+        Your first name
         <input name="firstName" type="text" autoComplete="given-name" required />
       </label>
       <label>
@@ -67,26 +87,48 @@ export default function SignupForm() {
       </label>
       <label>
         Mobile phone
-        <input
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          placeholder="(555) 555-5555"
-          required
-        />
+        <input name="phone" type="tel" autoComplete="tel" placeholder="(555) 555-5555" required />
       </label>
 
-      <label className="consent">
-        <input name="smsConsent" type="checkbox" required />
-        <span>
-          I agree to receive recurring text reminders from {site.name} at the
-          number provided. Message frequency varies. Msg &amp; data rates may
-          apply. Reply STOP to cancel, HELP for help. Consent is not a
-          condition of purchase. See our{" "}
-          <Link href="/terms">SMS Terms</Link> and{" "}
-          <Link href="/privacy">Privacy Policy</Link>.
-        </span>
-      </label>
+      <fieldset className="kids">
+        <legend>Your kids</legend>
+        <p className="hint">Grade and school help us match each reminder to the right kid.</p>
+        {kids.map((kid, i) => (
+          <div className="kid-row" key={i}>
+            <input
+              aria-label={`Child ${i + 1} first name`}
+              placeholder="First name"
+              value={kid.firstName}
+              onChange={(e) => setKid(i, "firstName", e.target.value)}
+              required={i === 0}
+            />
+            <input
+              aria-label={`Child ${i + 1} grade`}
+              placeholder="Grade (e.g. K, 3rd)"
+              value={kid.grade}
+              onChange={(e) => setKid(i, "grade", e.target.value)}
+            />
+            <input
+              aria-label={`Child ${i + 1} school`}
+              placeholder="School (optional)"
+              value={kid.school}
+              onChange={(e) => setKid(i, "school", e.target.value)}
+            />
+            {kids.length > 1 && (
+              <button type="button" className="remove-kid" onClick={() => removeKid(i)} aria-label={`Remove child ${i + 1}`}>
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+        {kids.length < MAX_KIDS && (
+          <button type="button" className="add-kid" onClick={addKid}>
+            + Add another child
+          </button>
+        )}
+      </fieldset>
+
+      <ConsentCheckbox />
 
       <button type="submit" className="btn" disabled={status === "sending"}>
         {status === "sending" ? "Signing up…" : "Sign up"}

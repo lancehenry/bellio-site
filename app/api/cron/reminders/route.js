@@ -1,5 +1,7 @@
 // The nightly reminder job. Vercel runs it every evening (see vercel.json).
-// For each parent, it finds tomorrow's events, writes one short text, and sends it.
+// For each household, it finds tomorrow's events, writes one short text
+// (grouped by kid when there's more than one), and sends it to every parent
+// in the household who's opted in.
 //
 // Preview in your browser any time, without texting anyone:
 //   https://www.heybellio.com/api/cron/reminders?key=YOUR_CRON_SECRET
@@ -10,11 +12,12 @@
 import { query, update } from "@/lib/db";
 import { composeMessage } from "@/lib/compose";
 import { sendSms, smsEnabled } from "@/lib/sms";
+import { getKids, getTextableMembers } from "@/lib/households";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-// Tomorrow's date (YYYY-MM-DD) in the parent's own time zone.
+// Tomorrow's date (YYYY-MM-DD) in the household's time zone.
 function tomorrowIn(timeZone) {
   let today;
   try {
@@ -42,35 +45,48 @@ export async function GET(request) {
     return Response.json({ error: "date must look like 2026-11-13" }, { status: 400 });
   }
 
-  const parents = (
-    await query("parents", "sms_consent=eq.true&sms_opted_out=eq.false&select=*")
-  ).filter((p) => p.subscription_status !== "canceled");
+  const households = await query("households", "subscription_status=neq.canceled&select=*");
 
   const results = [];
-  for (const parent of parents) {
-    const date = dateOverride || tomorrowIn(parent.timezone);
+  for (const household of households) {
+    const date = dateOverride || tomorrowIn(household.timezone);
     const events = await query(
       "events",
-      `parent_id=eq.${parent.id}&event_date=eq.${date}&reminder_sent_at=is.null&select=*&order=created_at`
+      `household_id=eq.${household.id}&event_date=eq.${date}&reminder_sent_at=is.null&select=*&order=created_at`
     );
     if (!events.length) continue;
 
-    const kids = await query("kids", `parent_id=eq.${parent.id}&select=first_name`);
+    const members = await getTextableMembers(household.id);
+    if (!members.length) continue;
+
+    const kids = await getKids(household.id);
     const body = await composeMessage(events, date, kids);
-    const result = { parent: parent.first_name, phone: `...${parent.phone.slice(-4)}`, date, events: events.length, body };
+    const result = {
+      household: household.inbox_key,
+      date,
+      events: events.length,
+      recipients: members.map((m) => `${m.first_name} (...${m.phone.slice(-4)})`),
+      body,
+    };
 
     if (sendForReal) {
-      try {
-        const { sent } = await sendSms(parent, body);
-        result.sent = sent;
-        if (sent) {
-          const now = new Date().toISOString();
-          for (const e of events) await update("events", { id: e.id }, { reminder_sent_at: now });
+      let anySent = false;
+      result.errors = [];
+      for (const member of members) {
+        try {
+          const { sent } = await sendSms(member, body);
+          anySent = anySent || sent;
+        } catch (err) {
+          console.error(`Reminder to member ${member.id} failed: ${err.message}`);
+          result.errors.push(`${member.first_name}: ${err.message}`);
         }
-      } catch (err) {
-        console.error(`Reminder to parent ${parent.id} failed: ${err.message}`);
-        result.error = err.message;
       }
+      result.sent = anySent;
+      if (anySent) {
+        const now = new Date().toISOString();
+        for (const e of events) await update("events", { id: e.id }, { reminder_sent_at: now });
+      }
+      if (!result.errors.length) delete result.errors;
     } else {
       result.sent = false;
       result.preview = true;
@@ -78,10 +94,10 @@ export async function GET(request) {
     results.push(result);
   }
 
-  console.log(`Reminder run: ${results.length} parent(s) with events, sending ${sendForReal && smsEnabled() ? "on" : "off"}`);
+  console.log(`Reminder run: ${results.length} household(s) with events, sending ${sendForReal && smsEnabled() ? "on" : "off"}`);
   return Response.json({
     mode: sendForReal ? (smsEnabled() ? "sent" : "dry run (SMS_SENDING_ENABLED is off)") : "preview",
-    parentsChecked: parents.length,
+    householdsChecked: households.length,
     messages: results,
   });
 }

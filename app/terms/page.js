@@ -18,6 +18,17 @@ export default function Terms() {
         also receive account and service messages, such as setup instructions.
       </p>
 
+      <h2>Who can use Bellio</h2>
+      <p>
+        Bellio is for parents and legal guardians of school-age children. Each
+        family account may include up to two adults (for example, two parents
+        or co-parents), each of whom must opt in with their own phone number.
+        Invite links work once and expire after 7 days. Please don&rsquo;t
+        share invite links with anyone other than a parent or guardian. Need
+        an exception, such as for a blended family? Email{" "}
+        <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+      </p>
+
       <h2>How you opt in</h2>
       <p>
         You opt in by entering your mobile number on our signup form and

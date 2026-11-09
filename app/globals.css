@@ -187,7 +187,7 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
   border: 1px solid var(--line);
   border-radius: var(--radius); padding: 28px;
   box-shadow: 0 20px 60px rgba(0,0,0,.35);
-  display: grid; gap: 16px;
+  display: grid; gap: 16px; align-content: start;
 }
 .form-card label { display: grid; gap: 7px; font-weight: 500; font-size: .88rem; color: var(--text); }
 .form-card input[type="text"],
@@ -213,6 +213,53 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
   font-family: var(--mono); font-size: 1rem; color: var(--accent-2);
   background: var(--bg); border: 1px solid var(--line); border-radius: 9px;
   padding: 12px 14px; word-break: break-all; user-select: all;
+}
+
+/* Kids list on signup */
+.kids { border: 1px solid var(--line); border-radius: 10px; padding: 14px 14px 12px; margin: 0; display: grid; gap: 10px; min-width: 0; }
+.kids legend { font-weight: 500; font-size: .88rem; padding: 0 6px; }
+.kids .hint { margin: -4px 0 2px; font-size: .8rem; color: var(--muted); }
+.kid-row { display: grid; grid-template-columns: 1.2fr 1fr 1.3fr auto; gap: 8px; align-items: center; }
+.kid-row input, .form-card .kid-row input {
+  font: inherit; font-size: .93rem; color: var(--text); min-width: 0;
+  padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+}
+.kid-row input::placeholder { color: #4f5a77; }
+.kid-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(91,140,255,.25); }
+.remove-kid {
+  background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 8px;
+  width: 34px; height: 38px; font-size: 1.1rem; cursor: pointer;
+}
+.remove-kid:hover { color: var(--text); border-color: var(--muted); }
+.add-kid {
+  justify-self: start; background: none; border: 1px dashed var(--line); color: var(--accent-2);
+  font: inherit; font-size: .88rem; font-weight: 500; padding: 8px 12px; border-radius: 8px; cursor: pointer;
+}
+.add-kid:hover { border-color: var(--accent-2); }
+.optional { color: var(--muted); font-weight: 400; }
+.form-card .hint, .join .hint { margin: 0; font-size: .82rem; color: var(--muted); }
+
+/* Copyable address / link */
+.copy-field { display: flex; gap: 8px; align-items: stretch; }
+.copy-field .forward-address { flex: 1; min-width: 0; }
+.copy-btn {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 9px;
+  font: inherit; font-size: .85rem; font-weight: 600; padding: 0 14px; cursor: pointer; white-space: nowrap;
+}
+.copy-btn:hover { border-color: var(--accent); }
+.success h4 { margin: 8px 0 0; color: var(--text); font-size: 1rem; }
+
+/* Join page */
+.join { padding-top: 64px; padding-bottom: 96px; }
+.join-inner { display: grid; grid-template-columns: 1fr 1.05fr; gap: 56px; align-items: start; }
+.join h1 { font-size: clamp(1.9rem, 4.2vw, 2.8rem); }
+
+@media (max-width: 760px) {
+  .kid-row { grid-template-columns: 1fr 1fr auto; }
+  .kid-row input:nth-child(3) { grid-column: 1 / 3; }
+  .kid-row + .kid-row { padding-top: 12px; border-top: 1px dashed var(--line); }
+  .join { padding-top: 32px; }
+  .join-inner { grid-template-columns: 1fr; gap: 32px; }
 }
 
 /* Legal pages */

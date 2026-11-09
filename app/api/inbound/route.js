@@ -1,5 +1,5 @@
 // Postmark sends every email that arrives at *@inbox.heybellio.com here.
-// We figure out which parent it belongs to, save it, ask Claude for the
+// We figure out which household it belongs to, save it, ask Claude for the
 // dates and to-dos, and save those as events.
 //
 // Postmark webhook URL (set in Postmark → Default Inbound Stream → Settings):
@@ -8,12 +8,14 @@
 import { insert, select, update } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
 import { saveEvents } from "@/lib/events";
+import { getKids, getTextableMembers } from "@/lib/households";
+import { sendSms } from "@/lib/sms";
 
 export const maxDuration = 60; // give Claude time to read long PDFs
 
 const INBOUND_DOMAIN = (process.env.INBOUND_DOMAIN || "inbox.heybellio.com").toLowerCase();
 
-// Collect every address the email was sent to and return the parent's inbox key.
+// Collect every address the email was sent to and return the household's inbox key.
 function findInboxKey(msg) {
   const addresses = [
     msg.OriginalRecipient,
@@ -68,17 +70,17 @@ export async function POST(request) {
     return Response.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // 2. Which parent is this for?
+  // 2. Which household is this for?
   const inboxKey = findInboxKey(msg);
   if (!inboxKey) {
     console.log("Inbound email with no matching inbox address:", msg.To);
     return ok({ ignored: "no inbox address" });
   }
 
-  const [parent] = await select("parents", { inbox_key: inboxKey });
-  if (!parent) {
+  const [household] = await select("households", { inbox_key: inboxKey });
+  if (!household) {
     console.log("Inbound email for unknown inbox key:", inboxKey);
-    return ok({ ignored: "unknown parent" });
+    return ok({ ignored: "unknown household" });
   }
 
   const fromAddress = (msg.FromFull?.Email || msg.From || "").toLowerCase();
@@ -87,7 +89,7 @@ export async function POST(request) {
 
   // 3. Save the raw email (attachment names only, not the files themselves).
   const [email] = await insert("emails", {
-    parent_id: parent.id,
+    household_id: household.id,
     source: "email",
     from_address: fromAddress,
     subject: msg.Subject || null,
@@ -96,17 +98,26 @@ export async function POST(request) {
   });
 
   // 4. Gmail sends a confirmation code before it will auto-forward.
-  //    Save it and skip the AI. (Later we'll text the code to the parent.)
+  //    Text the code to the household so they can finish setup, and skip the AI.
   if (fromAddress === "forwarding-noreply@google.com") {
     const code = (bodyText.match(/confirmation code:\s*(\d+)/i) || [])[1];
-    console.log(`Gmail forwarding confirmation for parent ${parent.id}: code ${code || "not found"}`);
+    console.log(`Gmail forwarding confirmation for household ${household.id}: code ${code || "not found"}`);
     await update("emails", { id: email.id }, { processed_at: new Date().toISOString() });
+    if (code) {
+      try {
+        for (const member of await getTextableMembers(household.id)) {
+          await sendSms(member, `Bellio: Your Gmail forwarding code is ${code}. Enter it in Gmail's forwarding settings to finish setup.`);
+        }
+      } catch (err) {
+        console.error(`Texting Gmail code failed: ${err.message}`);
+      }
+    }
     return ok({ gmailConfirmation: true });
   }
 
   // 5. Ask Claude for the dates and to-dos.
   try {
-    const kids = await select("kids", { parent_id: parent.id }, "first_name,grade,school");
+    const kids = await getKids(household.id);
     const { events, skipped } = await extractEvents({
       subject: msg.Subject,
       from: msg.From,
@@ -117,12 +128,13 @@ export async function POST(request) {
       kids,
     });
 
-    const { saved: fresh, dupes } = await saveEvents(parent.id, email.id, events);
+    const { saved: fresh, dupes, merged } = await saveEvents(household.id, email.id, events);
 
     await update("emails", { id: email.id }, { processed_at: new Date().toISOString() });
     console.log(
       `Email ${email.id}: saved ${fresh.length} event(s)` +
         (dupes ? `, skipped ${dupes} duplicate(s)` : "") +
+        (merged ? `, added a child to ${merged} existing event(s)` : "") +
         (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "")
     );
     return ok({ events: fresh.length, duplicates: dupes });

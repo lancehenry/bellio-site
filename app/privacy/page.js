@@ -28,6 +28,13 @@ export default function Privacy() {
           right person.
         </li>
         <li>
+          <strong>Family members:</strong> if you invite a co-parent, they
+          join your family with their own name and phone number. Everyone in
+          a family receives the same reminders and can see the same
+          children&rsquo;s names and school events. Each person controls their
+          own text messages and can reply STOP at any time.
+        </li>
+        <li>
           <strong>Content you send us:</strong> school emails you forward,
           their attachments, and photos of flyers you text us.
         </li>
