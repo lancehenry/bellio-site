@@ -2,7 +2,7 @@
 // its first member (with their text-message consent), and the kids. Returns the
 // family's forwarding address and a single-use link to invite a co-parent.
 
-import { insert, update } from "@/lib/db";
+import { insert, select, update } from "@/lib/db";
 import { sendSms } from "@/lib/sms";
 import {
   addKids,
@@ -13,6 +13,16 @@ import {
   inviteUrl,
   normalizePhone,
 } from "@/lib/households";
+
+// Is this email already the owner of a family that's still active?
+async function ownsActiveFamily(email) {
+  const owners = await select("members", { email, role: "owner" }, "household_id");
+  for (const { household_id } of owners) {
+    const [household] = await select("households", { id: household_id }, "subscription_status");
+    if (household && household.subscription_status !== "canceled") return true;
+  }
+  return false;
+}
 
 export async function POST(request) {
   let body;
@@ -50,6 +60,19 @@ export async function POST(request) {
     if (await findMemberByPhone(phone)) {
       return Response.json(
         { error: "That number is already signed up. Questions? Email hello@heybellio.com." },
+        { status: 409 }
+      );
+    }
+
+    // One family per owner email, to catch accidental second signups.
+    // (Co-parents joining by invite may share an email; that's checked separately and allowed.)
+    if (await ownsActiveFamily(email)) {
+      return Response.json(
+        {
+          error:
+            "Looks like you already have a Bellio family with this email. Want to add a co-parent instead? " +
+            "Text INVITE to Bellio, or email hello@heybellio.com.",
+        },
         { status: 409 }
       );
     }
