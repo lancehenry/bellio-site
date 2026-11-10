@@ -96,8 +96,11 @@ export default function Privacy() {
       <ul>
         <li>
           <strong>Forwarded emails and flyer photos:</strong> the contents are
-          erased about a day after we&rsquo;ve read them, and within 7 days at
-          most. A bare record that an email arrived is deleted after 30 days.
+          erased from our database about a day after we&rsquo;ve read them,
+          and within 7 days at most. A bare record that an email arrived is
+          deleted after 30 days. Our email provider, Postmark, also keeps a
+          copy of incoming emails for up to 45 days for spam and abuse
+          prevention, then deletes it.
         </li>
         <li>
           <strong>Reminders (dates and to-dos):</strong> deleted 30 days after
