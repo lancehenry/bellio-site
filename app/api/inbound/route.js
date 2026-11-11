@@ -6,11 +6,11 @@
 //   https://www.heybellio.com/api/inbound?token=YOUR_INBOUND_WEBHOOK_SECRET
 
 import { after } from "next/server";
-import { insert, select, update } from "@/lib/db";
+import { insert, select, update, updateWhere } from "@/lib/db";
 import { extractEvents } from "@/lib/extract";
 import { existingForPrompt, saveEvents } from "@/lib/events";
 import { getKids, getTextableMembers } from "@/lib/households";
-import { sendSms } from "@/lib/sms";
+import { sendSms, smsEnabled } from "@/lib/sms";
 import { handleLateArrivals } from "@/lib/reminders";
 import { LIMITS, overLimit } from "@/lib/protect";
 
@@ -158,10 +158,42 @@ async function processEmail(email, household, msg, bodyText, attachments) {
         ` (${Math.round((Date.now() - started) / 1000)}s)`
     );
 
+    // The first time a family's email reaches Bellio, text them so they know setup worked.
+    await confirmFirstEmail(household, msg.Subject, fresh.length);
+
     // If this email came in after tonight's text (or has something for today), send it now.
     await handleLateArrivals(household, fresh);
   } catch (err) {
     // The email is saved, so nothing is lost. processed_at stays empty so you can find and retry it.
     console.error(`Email ${email.id}: extraction failed - ${err.message}`);
+  }
+}
+
+// One-time "we got your first school email" text. Claiming the flag in the same
+// database update means two emails arriving together can't both send it.
+// While texting is off, nothing is claimed, so it still goes out once texting is on.
+async function confirmFirstEmail(household, subject, found) {
+  if (household.first_email_texted_at || !smsEnabled()) return;
+  try {
+    const members = await getTextableMembers(household.id);
+    if (!members.length) return;
+    const claimed = await updateWhere(
+      "households",
+      `id=eq.${household.id}&first_email_texted_at=is.null`,
+      { first_email_texted_at: new Date().toISOString() }
+    );
+    if (!claimed.length) return;
+
+    const title = String(subject || "").replace(/^\s*((fwd?|fw)\s*:\s*)+/i, "").trim();
+    const short = title.length > 40 ? `${title.slice(0, 39).trim()}\u2026` : title;
+    const what = short ? `your first school email ("${short}")` : "your first school email";
+    const next = found
+      ? `We found ${found} thing${found === 1 ? "" : "s"} to remind you about and will text you the night before.`
+      : "Nothing in it needed a reminder, but we'll text you when one does.";
+    for (const member of members) {
+      await sendSms(member, `Bellio: Got ${what}, so you're all set. ${next}`);
+    }
+  } catch (err) {
+    console.error(`First-email text failed for family ${household.id}: ${err.message}`);
   }
 }

@@ -372,3 +372,20 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
   .hero-inner, .signup-inner { grid-template-columns: 1fr; gap: 40px; }
   .steps { grid-template-columns: 1fr; }
 }
+
+/* Setup guide, step 2 and finish */
+.setup .add-sender { justify-self: start; }
+.setup .apps { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.setup .apps summary { cursor: pointer; font-size: .9rem; font-weight: 500; color: #c3cadc; }
+.setup .apps summary strong { color: var(--accent-2); }
+.setup .apps[open] summary { margin-bottom: 12px; }
+.setup .setup-next, .setup .setup-finish .btn { justify-self: start; }
+.sender-tags { list-style: none; padding: 0 !important; display: flex !important; flex-wrap: wrap; gap: 8px !important; }
+.sender-tag { display: inline-flex; align-items: center; gap: 6px; padding: 6px 6px 6px 12px; border-radius: 999px; border: 1px solid var(--accent); background: rgba(91,140,255,.12); }
+.sender-tag button { background: none; border: 0; color: var(--muted); font-size: 1.1rem; line-height: 1; padding: 2px 6px; border-radius: 999px; cursor: pointer; }
+.sender-tag button:hover { color: var(--text); background: rgba(255,255,255,.08); }
+.setup-finish { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 16px; margin-top: 4px; }
+.setup-finish .hint { margin: 0; }
+.setup-card.all-set { border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.06); scroll-margin-top: 90px; }
+.setup-card { scroll-margin-top: 90px; }
+.setup-card .link-btn { justify-self: start; text-align: left; }

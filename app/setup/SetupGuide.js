@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CopyField from "../CopyField";
 import site from "@/site.config";
+import { readSenders } from "./senders";
 
 const ADDRESS_RE = /^[a-f0-9]{6,12}@inbox\.heybellio\.com$/i;
 
-// Common school communication services. Parents tick the ones their school uses.
+// Common school communication services. Optional: parents open this list only if they need it.
 const PLATFORMS = [
   { id: "parentsquare", label: "ParentSquare", domain: "@parentsquare.com" },
   { id: "smore", label: "Smore newsletters", domain: "@smore.com" },
@@ -24,35 +25,64 @@ const TABS = [
   { id: "other", label: "Other" },
 ];
 
-function cleanDomain(input) {
-  let d = String(input || "").trim().toLowerCase();
-  if (!d) return "";
-  if (d.includes("@")) d = d.slice(d.lastIndexOf("@") + 1); // "teacher@smsd.org" -> "smsd.org"
-  d = d.replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
-  return /^[a-z0-9.-]+\.[a-z]{2,}$/.test(d) ? `@${d}` : "";
-}
-
 export default function SetupGuide() {
   const [address, setAddress] = useState("");
   const [tab, setTab] = useState("gmail");
-  const [school, setSchool] = useState("");
-  const [picked, setPicked] = useState(["parentsquare"]);
+  const [boxes, setBoxes] = useState([""]);
+  const [picked, setPicked] = useState([]);
+  const [problems, setProblems] = useState([]);
+  const [senders, setSenders] = useState(null); // null until they click Next
+  const [personal, setPersonal] = useState([]);
+  const [skipped, setSkipped] = useState(false); // chose "Other" without filling in step 2
+  const [finished, setFinished] = useState(false);
+  const step3 = useRef(null);
+  const doneCard = useRef(null);
 
-  // The signup and join pages link here with ?address=..., so we can fill it in.
+  // The signup, join, and family pages link here with ?address=..., so we can fill it in.
   useEffect(() => {
     const fromLink = new URLSearchParams(window.location.search).get("address") || "";
     if (ADDRESS_RE.test(fromLink)) setAddress(fromLink.toLowerCase());
   }, []);
 
-  const senders = useMemo(() => {
-    const schoolDomains = school.split(/[,;\s]+/).map(cleanDomain);
-    const list = [...schoolDomains, ...PLATFORMS.filter((p) => picked.includes(p.id)).map((p) => p.domain)];
-    return [...new Set(list.filter(Boolean))];
-  }, [school, picked]);
+  useEffect(() => {
+    if (finished) doneCard.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [finished]);
 
-  const gmailFrom = senders.join(" OR ");
   const bellio = ADDRESS_RE.test(address) ? address : "";
-  const toggle = (id) => setPicked((list) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]));
+  const list = senders || [];
+  const gmailFrom = list.join(" OR ");
+  const showSteps = senders !== null || skipped;
+  const toggle = (id) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
+  const setBox = (i, v) => setBoxes((b) => b.map((x, j) => (j === i ? v : x)));
+
+  function next() {
+    const read = readSenders(boxes);
+    const apps = PLATFORMS.filter((p) => picked.includes(p.id)).map((p) => p.domain);
+    const all = [...new Set([...read.senders, ...apps])];
+    if (read.problems.length) return setProblems(read.problems);
+    if (!all.length) return setProblems(["Paste the address of one school email to continue."]);
+    setProblems([]);
+    setSenders(all);
+    setPersonal(read.personal);
+    setFinished(false);
+    requestAnimationFrame(() => step3.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
+  function removeSender(s) {
+    const left = list.filter((x) => x !== s);
+    setPicked((l) => l.filter((id) => PLATFORMS.find((p) => p.id === id)?.domain !== s));
+    // Keep the boxes in step with the tags, so "Add or change senders" shows what's left.
+    const appDomains = PLATFORMS.map((p) => p.domain);
+    const typed = left.filter((x) => !appDomains.includes(x));
+    setBoxes(typed.length ? typed : [""]);
+    setSenders(left.length ? left : null);
+    setPersonal((l) => l.filter((x) => x !== s));
+  }
+
+  function edit() {
+    setSenders(null);
+    setFinished(false);
+  }
 
   return (
     <div className="setup-guide">
@@ -78,41 +108,103 @@ export default function SetupGuide() {
         )}
       </div>
 
-      {/* Step 2: which senders count as school email */}
+      {/* Step 2: who sends their school emails */}
       <div className="setup-card">
-        <h2><span className="step-num">2</span> Which emails are from school?</h2>
-        <label className="setup-label">
-          Your school district&rsquo;s email domain
-          <input
-            className="setup-input"
-            placeholder="e.g. smsd.org, or paste a teacher's email address"
-            value={school}
-            onChange={(e) => setSchool(e.target.value)}
-          />
-          <span className="hint">
-            Look at a teacher&rsquo;s email address. It&rsquo;s the part after the @. If school
-            emails come from more than one domain, separate them with commas.
-          </span>
-        </label>
-        <p className="setup-label">Services your school or PTA uses:</p>
-        <div className="chips">
-          {PLATFORMS.map((p) => (
-            <label key={p.id} className={`chip ${picked.includes(p.id) ? "on" : ""}`}>
-              <input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
-              {p.label}
-            </label>
-          ))}
-        </div>
-        {senders.length > 0 && (
-          <p className="hint">
-            Forwarding emails from: <strong>{senders.join(", ")}</strong>
-          </p>
+        <h2><span className="step-num">2</span> Who sends your school emails?</h2>
+        <p className="hint">So only school emails go to {site.name}, never your personal mail.</p>
+
+        {senders ? (
+          <>
+            <p className="setup-label">Got it. {site.name} will get emails from:</p>
+            <ul className="sender-tags">
+              {senders.map((s) => (
+                <li key={s} className="sender-tag">
+                  <code>{s}</code>
+                  <button type="button" aria-label={`Remove ${s}`} onClick={() => removeSender(s)}>&times;</button>
+                </li>
+              ))}
+            </ul>
+            {personal.length > 0 && (
+              <p className="hint">
+                We kept the full address for {personal.join(", ")}, so the rule doesn&rsquo;t catch all
+                your other {personal.length > 1 ? "personal" : personal[0].split("@")[1]} email.
+              </p>
+            )}
+            <button type="button" className="link-btn" onClick={edit}>Add or change senders</button>
+          </>
+        ) : (
+          <>
+            <p className="setup-label">
+              Open any email from your school or a teacher and paste the sender&rsquo;s address.
+            </p>
+            {boxes.map((b, i) => (
+              <input
+                key={i}
+                className="setup-input"
+                type="text"
+                inputMode="email"
+                autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
+                placeholder="e.g. mrs.smith@usd229.org"
+                aria-label={i ? `Another school sender ${i + 1}` : "School email address"}
+                value={b}
+                onChange={(e) => setBox(i, e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), next())}
+              />
+            ))}
+            <button type="button" className="link-btn add-sender" onClick={() => setBoxes((b) => [...b, ""])}>
+              + Add another sender
+            </button>
+            <p className="hint">
+              One address covers everyone at that school. Add another if emails also come from your
+              district or a different school.
+            </p>
+
+            <details className="apps">
+              <summary>
+                Does your school also send through an app like ParentSquare or Remind? (optional)
+                {picked.length > 0 && <strong> {picked.length} picked</strong>}
+              </summary>
+              <div className="chips">
+                {PLATFORMS.map((p) => (
+                  <label key={p.id} className={`chip ${picked.includes(p.id) ? "on" : ""}`}>
+                    <input type="checkbox" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} />
+                    {p.label}
+                  </label>
+                ))}
+              </div>
+            </details>
+
+            {problems.length > 0 && (
+              <div role="alert">
+                {problems.map((p) => <p key={p} className="form-error">{p}</p>)}
+              </div>
+            )}
+            <button type="button" className="btn setup-next" onClick={next}>Next</button>
+          </>
         )}
       </div>
 
       {/* Step 3: email-provider steps */}
-      <div className="setup-card">
+      <div className="setup-card" ref={step3}>
         <h2><span className="step-num">3</span> Set up the rule</h2>
+        {!showSteps ? (
+          <p className="hint">
+            Finish step 2 to see your steps.{" "}
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => {
+                setSkipped(true);
+                setTab("other");
+              }}
+            >
+              Rather not set up a rule? See other ways
+            </button>
+          </p>
+        ) : (
+        <>
         <div className="tabs" role="tablist">
           {TABS.map((t) => (
             <button
@@ -166,6 +258,12 @@ export default function SetupGuide() {
               </li>
             </ol>
             <p className="hint">
+              <strong>Shortcut:</strong> open a school email, click the <strong>&#8942;</strong> menu at the
+              top, then <strong>Filter messages like these</strong>. Gmail fills in the sender. Click{" "}
+              <strong>Create filter</strong>, check <strong>Forward it to</strong>, and choose your Bellio
+              address. Repeat for each school sender.
+            </p>
+            <p className="hint">
               For about a week, Gmail shows a notice that you&rsquo;re forwarding some email.
               That&rsquo;s normal. The filter only applies to new emails, so forward any recent
               school emails to Bellio by hand once.
@@ -182,8 +280,8 @@ export default function SetupGuide() {
               <li>
                 For the condition, choose <strong>Sender address includes</strong> (or <strong>From</strong>)
                 and add each of these:
-                {senders.length ? (
-                  <ul className="sender-list">{senders.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
+                {list.length ? (
+                  <ul className="sender-list">{list.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
                 ) : (
                   <span className="hint"> (fill in step 2 to see them)</span>
                 )}
@@ -197,6 +295,11 @@ export default function SetupGuide() {
             <p className="hint">
               The rule only applies to new emails, so forward any recent school emails to Bellio by
               hand once.
+            </p>
+            <p className="hint">
+              <strong>Shortcut in the new Outlook app:</strong> right-click a school email, choose{" "}
+              <strong>Rules &rarr; Create rule</strong>, then <strong>More options</strong> to add{" "}
+              <strong>Forward to</strong> with your Bellio address.
             </p>
             <p className="hint">
               Using a work or school email account? Some employers block forwarding outside the company.
@@ -215,8 +318,8 @@ export default function SetupGuide() {
               <li>Click <strong>Add a Rule</strong>.</li>
               <li>
                 Set <strong>If a message is from</strong> to one of your school senders:
-                {senders.length ? (
-                  <ul className="sender-list">{senders.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
+                {list.length ? (
+                  <ul className="sender-list">{list.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
                 ) : (
                   <span className="hint"> (fill in step 2 to see them)</span>
                 )}
@@ -257,16 +360,34 @@ export default function SetupGuide() {
             </ul>
           </div>
         )}
+
+        <div className="setup-finish">
+          <button type="button" className="btn" onClick={() => setFinished(true)}>
+            {tab === "other" ? "Got it" : "I\u2019ve set up my rule"}
+          </button>
+          <p className="hint">
+            Stuck? Text <strong>HELP</strong> to {site.smsNumber} or email{" "}
+            <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+          </p>
+        </div>
+        </>
+        )}
       </div>
 
-      <div className="setup-card done">
-        <h2>Check that it&rsquo;s working</h2>
-        <p>
-          Next time a school email arrives, Bellio picks out any dates and to-dos, and you&rsquo;ll get a
-          text the night before. Questions? Text <strong>HELP</strong> to Bellio or email{" "}
-          <a href="mailto:hello@heybellio.com">hello@heybellio.com</a>.
-        </p>
-      </div>
+      {finished && (
+        <div className="setup-card all-set" ref={doneCard} role="status">
+          <h2>You&rsquo;re all set</h2>
+          <ul>
+            <li>Your school emails keep arriving in your inbox as usual. {site.name} gets a copy.</li>
+            <li>The night before anything you need to know or do, you&rsquo;ll get a text.</li>
+            <li>When your first school email reaches {site.name}, we&rsquo;ll text you to confirm it&rsquo;s working.</li>
+            <li>
+              Want to check now? Forward one school email to your Bellio address
+              {bellio ? <CopyField value={bellio} /> : "."}
+            </li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

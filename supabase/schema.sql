@@ -1,4 +1,4 @@
--- Bellio database setup (current version, includes upgrades 002 through 005)
+-- Bellio database setup (current version, includes upgrades 002 through 006)
 -- For a brand-new Supabase project only. Paste into SQL Editor → New query → Run.
 -- If you already ran the original schema, run the migration files in order instead.
 
@@ -9,6 +9,7 @@ create table households (
   timezone text not null default 'America/Chicago',
   subscription_status text not null default 'beta',   -- beta | active | canceled
   canceled_at timestamptz,
+  first_email_texted_at timestamptz,               -- the one-time "got your first school email" text
   created_at timestamptz not null default now()
 );
 
