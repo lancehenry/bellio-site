@@ -118,7 +118,7 @@ export async function POST(request) {
     if (code) {
       try {
         for (const member of await getTextableMembers(household.id)) {
-          await sendSms(member, `Bellio: Your Gmail forwarding code is ${code}. Enter it in Gmail's forwarding settings to finish setup.`);
+          await sendSms(member, `Bellio: Your Gmail forwarding code is ${code}. Type it into the Verify box in Gmail's forwarding settings, then create your filter (steps: heybellio.com/setup).`);
         }
       } catch (err) {
         console.error(`Texting Gmail code failed: ${err.message}`);

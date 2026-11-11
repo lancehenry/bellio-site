@@ -76,3 +76,8 @@ Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBH
 - **Consent log** (`lib/consent.js`): every opt-in/opt-out is kept 4 years in `consent_events`, even after an account is deleted.
 - **Daily cleanup**: `bellio_purge()` in the database, run by the morning job. Wipes email contents after a day (7 days max), deletes events 30 days after they pass, text logs after 90 days, canceled families 30 days after canceling.
 - Run `supabase/migration-004-security-cleanup.sql` once, after 002 and 003.
+
+## Auto-forward setup guide
+
+- `/setup` (`app/setup/`): step-by-step Gmail, Outlook, iCloud, and manual instructions. Parents enter their school's email domain and pick services (ParentSquare, Smore, and so on), and the page builds the exact Gmail filter text.
+- Linked from the signup and join confirmations (with the family's address filled in), the welcome texts, the HELP reply, the Gmail-code text, and the site footer.

@@ -141,7 +141,7 @@ export async function POST(request) {
         member,
         `Bellio: Welcome, ${firstName}! You'll get the same reminders as the rest of your family` +
           `${kidNames ? ` for ${kidNames}` : ""}. Forward school emails to ${address} or text a photo of a flyer here. ` +
-          `Save this number as "Bellio". Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel.`
+          `Save this number as "Bellio". Auto-forward setup: heybellio.com/setup. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel.`
       );
       for (const other of members.filter((m) => m.sms_consent && !m.sms_opted_out)) {
         await sendSms(other, `Bellio: ${firstName} joined your family on Bellio and will get the same reminders.`);

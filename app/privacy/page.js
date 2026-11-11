@@ -121,7 +121,18 @@ export default function Privacy() {
         </li>
       </ul>
       <p>
-        You can ask us to delete your account and data sooner at any time.
+        You can delete your family and all of its data yourself at any time
+        on the Manage Family page (text SETTINGS to us for a sign-in link), or
+        ask us to do it.
+      </p>
+
+      <h2>Signing in and cookies</h2>
+      <p>
+        To use the Manage Family page, we text you a one-time sign-in link that
+        expires after 15 minutes. Signing in sets one cookie that keeps you
+        signed in on that device for 7 days. We don&rsquo;t use advertising or
+        tracking cookies. Each sign-in link is stored only in scrambled
+        (hashed) form and deleted within a day.
       </p>
 
       <h2>Bot and abuse protection</h2>

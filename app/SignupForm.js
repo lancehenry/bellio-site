@@ -63,6 +63,14 @@ export default function SignupForm() {
           We&rsquo;ll text you the night before anything you need to know or
           do. You can also text a photo of a paper flyer to our number.
         </p>
+        {result.forwardingAddress && (
+          <a
+            className="btn-secondary"
+            href={`/setup?address=${encodeURIComponent(result.forwardingAddress)}`}
+          >
+            Set up auto-forwarding (2 minutes) &rarr;
+          </a>
+        )}
         {result.inviteUrl && (
           <>
             <h4>Add a co-parent</h4>

@@ -1,4 +1,4 @@
--- Bellio database setup (current version, includes upgrades 002, 003, and 004)
+-- Bellio database setup (current version, includes upgrades 002 through 005)
 -- For a brand-new Supabase project only. Paste into SQL Editor → New query → Run.
 -- If you already ran the original schema, run the migration files in order instead.
 
@@ -126,54 +126,59 @@ create index rate_events_lookup_idx on rate_events (bucket, key, created_at);
 alter table consent_events enable row level security;
 alter table rate_events    enable row level security;
 
--- 4. Automatic cleanup. The morning job calls this once a day.
---    Returns how many rows each step touched, for the logs.
+-- One-time login links. Only a scrambled (hashed) copy of each link's code is
+-- stored, so even someone who could read this table couldn't use the links.
+create table login_tokens (
+  id          uuid primary key default gen_random_uuid(),
+  member_id   uuid not null references members(id) on delete cascade,
+  token_hash  text not null unique,
+  expires_at  timestamptz not null default now() + interval '15 minutes',
+  used_at     timestamptz,
+  created_at  timestamptz not null default now()
+);
+create index login_tokens_member_idx on login_tokens (member_id);
+alter table login_tokens enable row level security;
+
+-- Daily cleanup, now also removing old login links.
 create or replace function bellio_purge() returns jsonb
 language plpgsql as $$
 declare
   n int;
   result jsonb := '{}'::jsonb;
 begin
-  -- Wipe forwarded email contents a day after processing (kept briefly in case something needs a retry).
   update emails set body_text = null, subject = null, from_address = null, attachments = null
    where processed_at < now() - interval '1 day'
      and (body_text is not null or subject is not null or from_address is not null);
   get diagnostics n = row_count; result := result || jsonb_build_object('email_contents_wiped', n);
 
-  -- Wipe any email contents after 7 days, processed or not.
   update emails set body_text = null, subject = null, from_address = null, attachments = null
    where created_at < now() - interval '7 days'
      and (body_text is not null or subject is not null or from_address is not null);
   get diagnostics n = row_count; result := result || jsonb_build_object('old_email_contents_wiped', n);
 
-  -- Delete email records after 30 days.
   delete from emails where created_at < now() - interval '30 days';
   get diagnostics n = row_count; result := result || jsonb_build_object('emails_deleted', n);
 
-  -- Delete events 30 days after they happened.
   delete from events where event_date < current_date - 30;
   get diagnostics n = row_count; result := result || jsonb_build_object('events_deleted', n);
 
-  -- Delete text message logs after 90 days.
   delete from messages where created_at < now() - interval '90 days';
   get diagnostics n = row_count; result := result || jsonb_build_object('messages_deleted', n);
 
-  -- Delete invite links 30 days after they expired.
   delete from invites where expires_at < now() - interval '30 days';
   get diagnostics n = row_count; result := result || jsonb_build_object('invites_deleted', n);
 
-  -- Delete canceled families 30 days after canceling (removes their members,
-  -- kids, emails, events, invites, and messages too).
   delete from households
    where subscription_status = 'canceled'
      and coalesce(canceled_at, created_at) < now() - interval '30 days';
   get diagnostics n = row_count; result := result || jsonb_build_object('families_deleted', n);
 
-  -- Rate-limit records are only needed for a day or two.
   delete from rate_events where created_at < now() - interval '2 days';
   get diagnostics n = row_count; result := result || jsonb_build_object('rate_events_deleted', n);
 
-  -- Consent records are kept 4 years (the window for texting complaints), then removed.
+  delete from login_tokens where created_at < now() - interval '1 day';
+  get diagnostics n = row_count; result := result || jsonb_build_object('login_links_deleted', n);
+
   delete from consent_events where created_at < now() - interval '4 years';
   get diagnostics n = row_count; result := result || jsonb_build_object('consent_events_deleted', n);
 
@@ -181,7 +186,6 @@ begin
 end;
 $$;
 
--- Only the Bellio server (secret key) may run the cleanup.
 revoke execute on function bellio_purge() from public;
 do $$
 begin

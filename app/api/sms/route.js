@@ -18,6 +18,7 @@ import { isValidTwilioRequest, sendSms, twiml, twilioAuthHeader } from "@/lib/sm
 import { handleLateArrivals } from "@/lib/reminders";
 import { recordConsent } from "@/lib/consent";
 import { LIMITS, overLimit } from "@/lib/protect";
+import { createLoginLink, LOGIN_LINK_MINUTES } from "@/lib/session";
 import {
   FULL_FAMILY_MESSAGE,
   INVITE_DAYS,
@@ -36,10 +37,11 @@ const STOP_WORDS = ["STOP", "STOPALL", "UNSUBSCRIBE", "CANCEL", "END", "QUIT", "
 const START_WORDS = ["START", "UNSTOP", "YES", "SUBSCRIBE"];
 const HELP_WORDS = ["HELP", "INFO"];
 const INVITE_WORDS = ["INVITE", "ADD", "COPARENT", "ADDPARENT"];
+const SETTINGS_WORDS = ["SETTINGS", "SETTING", "MANAGE", "ACCOUNT", "FAMILY", "KIDS"];
 
 const HELP_TEXT =
   "Bellio: School reminders by text. Forward school emails to your Bellio address or text us a photo of a flyer. " +
-  "Text INVITE to add a co-parent. Questions: hello@heybellio.com. Msg & data rates may apply. Reply STOP to cancel.";
+  "Setup help: heybellio.com/setup. Text SETTINGS to manage your family, INVITE to add a co-parent. Questions: hello@heybellio.com. Msg & data rates may apply. Reply STOP to cancel.";
 
 export async function POST(request) {
   const form = await request.formData();
@@ -112,7 +114,18 @@ export async function POST(request) {
     );
   }
 
-  // 5. A photo of a flyer: read it after replying, since that can take a little while.
+  // 5. A sign-in link for the Manage Family page.
+  if (SETTINGS_WORDS.includes(keyword)) {
+    if (await overLimit(LIMITS.loginLinkPerPhone, from)) {
+      return twiml("Bellio: You've asked for several links recently. Please try again in an hour.");
+    }
+    const link = await createLoginLink(member);
+    return twiml(
+      `Bellio: Manage your family (kids, co-parent, invites) here. Works once, expires in ${LOGIN_LINK_MINUTES} min: ${link}`
+    );
+  }
+
+  // 6. A photo of a flyer: read it after replying, since that can take a little while.
   const mediaCount = Number(params.NumMedia || 0);
   if (mediaCount > 0) {
     if (await overLimit(LIMITS.photosPerMember, member.id)) {
@@ -122,7 +135,7 @@ export async function POST(request) {
     return twiml();
   }
 
-  // 6. Anything else: saved above. A friendly pointer back to how Bellio works.
+  // 7. Anything else: saved above. A friendly pointer back to how Bellio works.
   return twiml(
     `Bellio: Thanks, got it! To add school info, forward emails to ${forwardingAddress(household)} or text a photo of a flyer. Text INVITE to add a co-parent.`
   );

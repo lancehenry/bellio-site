@@ -149,7 +149,7 @@ export async function POST(request) {
         member,
         `Bellio: Welcome, ${firstName}! Forward school emails to ${address} or text a photo of a flyer here. ` +
           `We'll text you the night before anything you need to know. Save this number as "Bellio". ` +
-          `Text INVITE to add a co-parent. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel.`
+          `Auto-forward setup: heybellio.com/setup. Text INVITE to add a co-parent. Msg frequency varies. Msg & data rates may apply. Reply HELP for help, STOP to cancel.`
       );
     } catch (err) {
       console.error(`Welcome text to member ${member.id} failed: ${err.message}`);

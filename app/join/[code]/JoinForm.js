@@ -47,6 +47,14 @@ export default function JoinForm({ code }) {
           Forward any school emails you get to:
         </p>
         {result.forwardingAddress && <CopyField value={result.forwardingAddress} />}
+        {result.forwardingAddress && (
+          <a
+            className="btn-secondary"
+            href={`/setup?address=${encodeURIComponent(result.forwardingAddress)}`}
+          >
+            Set up auto-forwarding (2 minutes) &rarr;
+          </a>
+        )}
       </div>
     );
   }

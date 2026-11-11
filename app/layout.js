@@ -48,6 +48,8 @@ export default function RootLayout({ children }) {
               <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
             </p>
             <nav>
+              <Link href="/setup">Setup guide</Link>
+              <Link href="/family">Manage family</Link>
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/terms">SMS Terms</Link>
             </nav>
