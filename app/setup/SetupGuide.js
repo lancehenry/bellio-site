@@ -35,6 +35,8 @@ export default function SetupGuide() {
   const [personal, setPersonal] = useState([]);
   const [skipped, setSkipped] = useState(false); // chose "Other" without filling in step 2
   const [finished, setFinished] = useState(false);
+  const [addressError, setAddressError] = useState("");
+  const step1 = useRef(null);
   const step3 = useRef(null);
   const doneCard = useRef(null);
 
@@ -55,6 +57,25 @@ export default function SetupGuide() {
   const toggle = (id) => setPicked((l) => (l.includes(id) ? l.filter((x) => x !== id) : [...l, id]));
   const setBox = (i, v) => setBoxes((b) => b.map((x, j) => (j === i ? v : x)));
 
+  // Steps 3 and the finish need the Bellio address, so check it before moving on.
+  function addressReady() {
+    if (bellio) return true;
+    setAddressError(
+      address.trim()
+        ? "That doesn\u2019t look like a Bellio address. It ends in @inbox.heybellio.com, like ab12cd34@inbox.heybellio.com."
+        : `Add your Bellio address first. It\u2019s on your signup confirmation and in your welcome text, or text SETTINGS to ${site.smsNumber} for a link to it.`
+    );
+    requestAnimationFrame(() => {
+      step1.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      step1.current?.querySelector("input")?.focus({ preventScroll: true });
+    });
+    return false;
+  }
+
+  function finish() {
+    if (addressReady()) setFinished(true);
+  }
+
   function next() {
     const read = readSenders(boxes);
     const apps = PLATFORMS.filter((p) => picked.includes(p.id)).map((p) => p.domain);
@@ -62,6 +83,7 @@ export default function SetupGuide() {
     if (read.problems.length) return setProblems(read.problems);
     if (!all.length) return setProblems(["Paste the address of one school email to continue."]);
     setProblems([]);
+    if (!addressReady()) return;
     setSenders(all);
     setPersonal(read.personal);
     setFinished(false);
@@ -87,10 +109,15 @@ export default function SetupGuide() {
   return (
     <div className="setup-guide">
       {/* Step 1: their Bellio address */}
-      <div className="setup-card">
+      <div className="setup-card" ref={step1}>
         <h2><span className="step-num">1</span> Your family&rsquo;s Bellio address</h2>
         {bellio ? (
-          <CopyField value={bellio} />
+          <>
+            <CopyField value={bellio} />
+            <button type="button" className="link-btn" onClick={() => { setAddress(""); setFinished(false); }}>
+              Not your address? Change it
+            </button>
+          </>
         ) : (
           <>
             <p className="hint">
@@ -101,9 +128,18 @@ export default function SetupGuide() {
               className="setup-input"
               placeholder="Paste your Bellio address"
               value={address}
-              onChange={(e) => setAddress(e.target.value.trim())}
+              onChange={(e) => {
+                setAddress(e.target.value.trim().toLowerCase());
+                setAddressError("");
+              }}
               aria-label="Your Bellio address"
+              aria-invalid={addressError ? true : undefined}
+              type="email"
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
             />
+            {addressError && <p className="form-error" role="alert">{addressError}</p>}
           </>
         )}
       </div>
@@ -128,6 +164,14 @@ export default function SetupGuide() {
               <p className="hint">
                 We kept the full address for {personal.join(", ")}, so the rule doesn&rsquo;t catch all
                 your other {personal.length > 1 ? "personal" : personal[0].split("@")[1]} email.
+              </p>
+            )}
+            {senders.some((x) => x.startsWith("@") && !PLATFORMS.some((p) => p.domain === x)) && (
+              <p className="hint">
+                A whole-school sender like{" "}
+                <code>{senders.find((x) => x.startsWith("@") && !PLATFORMS.some((p) => p.domain === x))}</code>{" "}
+                includes everything that school emails you, like grade or nurse notes. {site.name} only
+                keeps the dates and to-dos, and erases the rest within a day.
               </p>
             )}
             <button type="button" className="link-btn" onClick={edit}>Add or change senders</button>
@@ -159,6 +203,10 @@ export default function SetupGuide() {
             <p className="hint">
               One address covers everyone at that school. Add another if emails also come from your
               district or a different school.
+            </p>
+            <p className="hint">
+              <strong>Work for the school district?</strong> Set this up in a personal email account, not
+              your work one, so your work email isn&rsquo;t forwarded. Or forward school emails by hand.
             </p>
 
             <details className="apps">
@@ -361,8 +409,38 @@ export default function SetupGuide() {
           </div>
         )}
 
+        <details className="apps change-later">
+          <summary>Changing schools or senders later?</summary>
+          <div className="tab-body">
+            <p>
+              Your rule lives in your email account, so you change it there. Come back to this page to
+              make the new sender list, then:
+            </p>
+            <ul>
+              <li>
+                <strong>Gmail:</strong> gear icon &rarr; <strong>See all settings</strong> &rarr;{" "}
+                <strong>Filters and Blocked Addresses</strong>. Click <strong>edit</strong> next to your
+                Bellio filter, replace the <strong>From</strong> box, then <strong>Continue</strong> and{" "}
+                <strong>Update filter</strong>. Or click <strong>delete</strong> to stop forwarding.
+              </li>
+              <li>
+                <strong>Outlook:</strong> gear icon &rarr; <strong>Mail &rarr; Rules</strong>. Click the
+                pencil next to &ldquo;Bellio&rdquo; to change the senders, or the trash can to delete it.
+              </li>
+              <li>
+                <strong>iCloud:</strong> <strong>Settings &rarr; Rules</strong>. Select a Bellio rule to
+                change or delete it. Each sender has its own rule.
+              </li>
+            </ul>
+            <p>
+              Moved to a new school? Also update each child&rsquo;s school on the{" "}
+              <a href="/family">Manage Family</a> page, so reminders go to the right kid.
+            </p>
+          </div>
+        </details>
+
         <div className="setup-finish">
-          <button type="button" className="btn" onClick={() => setFinished(true)}>
+          <button type="button" className="btn" onClick={finish}>
             {tab === "other" ? "Got it" : "I\u2019ve set up my rule"}
           </button>
           <p className="hint">

@@ -389,3 +389,4 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
 .setup-card.all-set { border-color: rgba(34,211,238,.45); background: rgba(34,211,238,.06); scroll-margin-top: 90px; }
 .setup-card { scroll-margin-top: 90px; }
 .setup-card .link-btn { justify-self: start; text-align: left; }
+.setup .change-later { margin-top: 4px; }

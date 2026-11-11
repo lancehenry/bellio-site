@@ -150,11 +150,15 @@ async function processEmail(email, household, msg, bodyText, attachments) {
     const { saved: fresh, dupes, merged } = await saveEvents(household.id, email.id, events);
 
     await update("emails", { id: email.id }, { processed_at: new Date().toISOString() });
+    // Postmark's spam check, logged so we can see real scores before ever filtering on them.
+    const header = (n) => (msg.Headers || []).find((h) => h.Name?.toLowerCase() === n)?.Value;
+    const spam = header("x-spam-score");
     console.log(
       `Email ${email.id}: saved ${fresh.length} event(s)` +
         (dupes ? `, skipped ${dupes} duplicate(s)` : "") +
         (merged ? `, added a child to ${merged} existing event(s)` : "") +
         (skipped.length ? `, skipped attachments: ${skipped.join(", ")}` : "") +
+        (spam ? `, spam score ${spam}${header("x-spam-status")?.startsWith("Yes") ? " (flagged)" : ""}` : "") +
         ` (${Math.round((Date.now() - started) / 1000)}s)`
     );
 

@@ -75,6 +75,7 @@ export default function FamilyPage() {
   const { me, kids, adults, maxAdults, maxKids } = family;
   const isOwner = me.role === "owner";
   const others = adults.filter((a) => !a.isMe);
+  const setupUrl = `/setup?address=${encodeURIComponent(family.forwardingAddress)}`;
 
   return (
     <section className="container family">
@@ -98,7 +99,7 @@ export default function FamilyPage() {
         <h2>Your family&rsquo;s Bellio address</h2>
         <CopyField value={family.forwardingAddress} />
         <p className="hint">
-          Forward school emails here, or <Link href={`/setup?address=${encodeURIComponent(family.forwardingAddress)}`}>set up auto-forwarding</Link>.
+          Forward school emails here, or <Link href={setupUrl}>set up auto-forwarding</Link>.
         </p>
       </div>
 
@@ -107,7 +108,7 @@ export default function FamilyPage() {
         <p className="hint">Grade and school help Bellio match each reminder to the right kid.</p>
         <ul className="row-list">
           {kids.map((k) => (
-            <KidRow key={k.id} kid={k} canRemove={kids.length > 1} onSave={act} />
+            <KidRow key={k.id} kid={k} canRemove={kids.length > 1} onSave={act} setupUrl={setupUrl} />
           ))}
         </ul>
         {kids.length < maxKids && <AddKid onAdd={act} />}
@@ -202,7 +203,7 @@ export default function FamilyPage() {
   );
 }
 
-function KidRow({ kid, canRemove, onSave }) {
+function KidRow({ kid, canRemove, onSave, setupUrl }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(kid);
   if (!editing) {
@@ -235,7 +236,19 @@ function KidRow({ kid, canRemove, onSave }) {
       <div className="row-actions">
         <button
           className="btn-secondary"
-          onClick={async () => (await onSave({ action: "updateKid", kidId: kid.id, kid: form }, "Saved.")) && setEditing(false)}
+          onClick={async () => {
+            // Only when an existing school changes, not when one is filled in for the first time.
+            const newSchool = !!(kid.school || "").trim() && (form.school || "").trim().toLowerCase() !== (kid.school || "").trim().toLowerCase();
+            const note = newSchool ? (
+              <>
+                Saved. Changed schools? <Link href={setupUrl}>Update your email rule</Link> so the new
+                school&rsquo;s emails reach {site.name}.
+              </>
+            ) : (
+              "Saved."
+            );
+            if (await onSave({ action: "updateKid", kidId: kid.id, kid: form }, note)) setEditing(false);
+          }}
         >
           Save
         </button>
