@@ -4,6 +4,9 @@
 // GET  → the family: forwarding address, kids, adults, and who you are
 // POST → { action: ... }
 //   addKid, updateKid, removeKid
+//   dismissEvent              (removes a wrong reminder; it won't be texted or re-added)
+//   startPhoneChange          (texts a 6-digit code to the new number)
+//   confirmPhoneChange        (checks the code, then switches the number)
 //   newInvite                 (when the family has room for another adult)
 //   removeMember              (owner only, removes a co-parent)
 //   stopTexts                 (stops texts to yourself; text START to resume)
@@ -11,7 +14,10 @@
 //   deleteFamily              (owner only; erases the family's data right away)
 //   signOut
 
-import { deleteWhere, insert, query, select, update } from "@/lib/db";
+import crypto from "node:crypto";
+import { deleteWhere, insert, query, select, update, updateWhere } from "@/lib/db";
+import { sendSms } from "@/lib/sms";
+import { getUpcoming, HEADS_UP_RE } from "@/lib/upcoming";
 import { recordConsent } from "@/lib/consent";
 import { LIMITS, overLimit } from "@/lib/protect";
 import { clearSessionCookie, getSessionMember, sameOrigin } from "@/lib/session";
@@ -25,6 +31,7 @@ import {
   getKids,
   getMembers,
   inviteUrl,
+  normalizePhone,
 } from "@/lib/households";
 
 export const dynamic = "force-dynamic";
@@ -36,9 +43,21 @@ const signedOut = () => json({ error: "Please sign in again." }, 401, { "Set-Coo
 
 async function familyView(member, household) {
   const [kids, members] = await Promise.all([getKids(household.id), getMembers(household.id)]);
+  const [pending] = await query(
+    "phone_changes",
+    `member_id=eq.${member.id}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=new_phone&order=created_at.desc&limit=1`
+  );
   return {
+    upcoming: await getUpcoming(household, kids, 30),
+    pendingPhoneEnd: pending ? pending.new_phone.slice(-4) : null,
     forwardingAddress: forwardingAddress(household),
-    me: { id: member.id, firstName: member.first_name, role: member.role, textsOn: !member.sms_opted_out },
+    me: {
+      id: member.id,
+      firstName: member.first_name,
+      role: member.role,
+      textsOn: !member.sms_opted_out,
+      phoneEnd: member.phone.slice(-4),
+    },
     kids: kids.map((k) => ({ id: k.id, firstName: k.first_name, grade: k.grade || "", school: k.school || "" })),
     adults: members.map((m) => ({
       id: m.id,
@@ -113,6 +132,110 @@ export async function POST(request) {
         break;
       }
 
+      // ----- Reminders -----
+      case "dismissEvent": {
+        if (!UUID_RE.test(String(body.eventId || ""))) return json({ error: "That reminder isn't in your family." }, 404);
+        const [event] = await select("events", { id: body.eventId });
+        if (!event || event.household_id !== household.id) return json({ error: "That reminder isn't in your family." }, 404);
+        const now = new Date().toISOString();
+        await update("events", { id: event.id }, { dismissed_at: now });
+        // Also remove its earlier "Coming up: ..." heads-up, if there is one.
+        if (!HEADS_UP_RE.test(event.title)) {
+          const core = event.title.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+          const ups = await query(
+            "events",
+            `household_id=eq.${household.id}&event_date=lt.${event.event_date}&dismissed_at=is.null&title=ilike.${encodeURIComponent("coming up:*")}&select=id,title`
+          );
+          for (const u of ups) {
+            const t = u.title.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ");
+            if (core.length >= 4 && t.includes(core)) await update("events", { id: u.id }, { dismissed_at: now });
+          }
+        }
+        console.log(`Member ${member.id} dismissed event ${event.id}`);
+        break;
+      }
+
+      // ----- Your phone number -----
+      case "startPhoneChange": {
+        const phone = normalizePhone(body.phone);
+        if (!phone) return json({ error: "Please enter a 10-digit US mobile number." }, 400);
+        if (phone === member.phone) return json({ error: "That's already your number." }, 400);
+        if (!body.consent) return json({ error: "Please check the box to agree to texts at the new number." }, 400);
+        if (
+          (await overLimit(LIMITS.phoneCodePerMember, member.id)) ||
+          (await overLimit(LIMITS.phoneCodePerNumber, phone))
+        ) {
+          return json({ error: "You've asked for several codes recently. Please wait an hour and try again." }, 429);
+        }
+        const [taken] = await select("members", { phone });
+        if (taken) {
+          return json({ error: `That number is already used in Bellio. If it's yours, email hello@heybellio.com.` }, 400);
+        }
+        const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+        await deleteWhere("phone_changes", `member_id=eq.${member.id}`);
+        await insert("phone_changes", { member_id: member.id, new_phone: phone, code_hash: hashCode(member.id, code) });
+        await sendSms(
+          { id: member.id, household_id: household.id, phone },
+          `Bellio: Your code to confirm this number is ${code}. It expires in 10 minutes. If you didn't ask for this, ignore this text.`
+        );
+        console.log(`Member ${member.id} asked to change their number to ...${phone.slice(-4)}`);
+        break;
+      }
+      case "cancelPhoneChange": {
+        await deleteWhere("phone_changes", `member_id=eq.${member.id}`);
+        break;
+      }
+      case "confirmPhoneChange": {
+        const code = String(body.code || "").replace(/\D/g, "");
+        const [pending] = await query(
+          "phone_changes",
+          `member_id=eq.${member.id}&expires_at=gt.${encodeURIComponent(new Date().toISOString())}&select=*&order=created_at.desc&limit=1`
+        );
+        if (!pending) return json({ error: "That code has expired. Ask for a new one." }, 400);
+        if (pending.attempts >= 5) {
+          await deleteWhere("phone_changes", `member_id=eq.${member.id}`);
+          return json({ error: "Too many tries. Ask for a new code." }, 400);
+        }
+        // Count the try first, so guesses can't skip the limit.
+        const counted = await updateWhere(
+          "phone_changes",
+          `id=eq.${pending.id}&attempts=eq.${pending.attempts}`,
+          { attempts: pending.attempts + 1 }
+        );
+        if (!counted.length) return json({ error: "Please try again." }, 409);
+        const a = Buffer.from(hashCode(member.id, code));
+        const b = Buffer.from(pending.code_hash);
+        if (code.length !== 6 || a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
+          const left = 4 - pending.attempts;
+          return json({ error: left > 0 ? `That code isn't right. ${left} ${left === 1 ? "try" : "tries"} left.` : "Too many tries. Ask for a new code." }, 400);
+        }
+        const [taken] = await select("members", { phone: pending.new_phone });
+        if (taken) {
+          await deleteWhere("phone_changes", `member_id=eq.${member.id}`);
+          return json({ error: "That number was just added to Bellio by someone else. Email hello@heybellio.com." }, 400);
+        }
+        const oldPhone = member.phone;
+        const now = new Date().toISOString();
+        const changed = { phone: pending.new_phone, sms_consent: true, sms_opted_out: false, consent_at: now, consent_source: "phone_change" };
+        await update("members", { id: member.id }, changed);
+        await deleteWhere("phone_changes", `member_id=eq.${member.id}`);
+        await recordConsent(pending.new_phone, "opt_in", "phone_change", household.id);
+        await recordConsent(oldPhone, "opt_out", "phone_change", household.id);
+        console.log(`Member ${member.id} changed their number to ...${pending.new_phone.slice(-4)}`);
+        // Let the old number know, in case this wasn't them.
+        if (!member.sms_opted_out) {
+          try {
+            await sendSms(
+              { id: member.id, household_id: household.id, phone: oldPhone },
+              `Bellio: The number on your Bellio account was changed to one ending in ${pending.new_phone.slice(-4)}. Texts now go there. If this wasn't you, email hello@heybellio.com.`
+            );
+          } catch (err) {
+            console.error(`Old-number notice failed: ${err.message}`);
+          }
+        }
+        return json({ ...(await familyView({ ...member, ...changed }, household)), phoneChanged: true });
+      }
+
       // ----- Adults -----
       case "newInvite": {
         const members = await getMembers(household.id);
@@ -177,6 +300,10 @@ export async function POST(request) {
     console.error(`Family action "${body.action}" failed for member ${member.id}: ${err.message}`);
     return json({ error: "Something went wrong. Please try again." }, 500);
   }
+}
+
+function hashCode(memberId, code) {
+  return crypto.createHash("sha256").update(`${memberId}:${code}`).digest("hex");
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

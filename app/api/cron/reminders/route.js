@@ -11,6 +11,7 @@
 import { query } from "@/lib/db";
 import { smsEnabled } from "@/lib/sms";
 import { addDays, localNow, sendFamilyReminder } from "@/lib/reminders";
+import { recordJobRun } from "@/lib/status";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -33,6 +34,7 @@ export async function GET(request) {
 
   const households = await query("households", "subscription_status=neq.canceled&select=*");
   const results = [];
+  let failures = 0;
   for (const household of households) {
     const date = dateOverride || addDays(localNow(household.timezone).date, 1);
     try {
@@ -40,10 +42,16 @@ export async function GET(request) {
       if (result) results.push(result);
     } catch (err) {
       console.error(`Nightly reminder for family ${household.id} failed: ${err.message}`);
+      failures++;
     }
   }
 
   console.log(`Nightly run: ${results.length} famil(ies) with events, sending ${sendForReal && smsEnabled() ? "on" : "off"}`);
+  if (fromVercelCron) {
+    // For the daily status report: did it run, and did any texts fail?
+    const errors = results.reduce((n, r) => n + (r.errors?.length || 0), 0) + failures;
+    await recordJobRun("nightly", { families: results.filter((r) => r.sent).length, errors, sending: smsEnabled() });
+  }
   return Response.json({
     mode: sendForReal ? (smsEnabled() ? "sent" : "dry run (SMS_SENDING_ENABLED is off)") : "preview",
     familiesChecked: households.length,

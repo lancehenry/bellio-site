@@ -1,4 +1,4 @@
--- Bellio database setup (current version, includes upgrades 002 through 006)
+-- Bellio database setup (current version, includes upgrades 002 through 007)
 -- For a brand-new Supabase project only. Paste into SQL Editor → New query → Run.
 -- If you already ran the original schema, run the migration files in order instead.
 
@@ -75,6 +75,7 @@ create table events (
   applies_to text,
   date_unclear boolean not null default false,
   reminder_sent_at timestamptz,
+  dismissed_at timestamptz,                 -- removed by a parent on Manage Family (kept so it isn't re-added)
   created_at timestamptz not null default now()
 );
 
@@ -140,7 +141,30 @@ create table login_tokens (
 create index login_tokens_member_idx on login_tokens (member_id);
 alter table login_tokens enable row level security;
 
--- Daily cleanup, now also removing old login links.
+-- 2. Codes for confirming a new phone number (only a scrambled copy of each code is kept).
+create table if not exists phone_changes (
+  id          uuid primary key default gen_random_uuid(),
+  member_id   uuid not null references members(id) on delete cascade,
+  new_phone   text not null,
+  code_hash   text not null,
+  attempts    int not null default 0,
+  expires_at  timestamptz not null default now() + interval '10 minutes',
+  created_at  timestamptz not null default now()
+);
+create index if not exists phone_changes_member_idx on phone_changes (member_id);
+alter table phone_changes enable row level security;
+
+-- 3. A record each time the nightly and morning jobs run, for the daily status report.
+create table if not exists job_runs (
+  id       bigserial primary key,
+  name     text not null,                 -- nightly | morning
+  ran_at   timestamptz not null default now(),
+  summary  jsonb
+);
+create index if not exists job_runs_name_idx on job_runs (name, ran_at desc);
+alter table job_runs enable row level security;
+
+-- Daily cleanup.
 create or replace function bellio_purge() returns jsonb
 language plpgsql as $$
 declare
@@ -179,6 +203,12 @@ begin
 
   delete from login_tokens where created_at < now() - interval '1 day';
   get diagnostics n = row_count; result := result || jsonb_build_object('login_links_deleted', n);
+
+  delete from phone_changes where created_at < now() - interval '1 day';
+  get diagnostics n = row_count; result := result || jsonb_build_object('phone_codes_deleted', n);
+
+  delete from job_runs where ran_at < now() - interval '30 days';
+  get diagnostics n = row_count; result := result || jsonb_build_object('job_runs_deleted', n);
 
   delete from consent_events where created_at < now() - interval '4 years';
   get diagnostics n = row_count; result := result || jsonb_build_object('consent_events_deleted', n);

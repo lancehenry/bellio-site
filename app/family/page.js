@@ -103,6 +103,8 @@ export default function FamilyPage() {
         </p>
       </div>
 
+      <Upcoming items={family.upcoming || []} onRemove={act} />
+
       <div className="setup-card">
         <h2>Kids</h2>
         <p className="hint">Grade and school help Bellio match each reminder to the right kid.</p>
@@ -160,9 +162,10 @@ export default function FamilyPage() {
 
       <div className="setup-card">
         <h2>Your texts</h2>
+        <PhoneNumber me={me} pendingEnd={family.pendingPhoneEnd} onAct={act} />
         {me.textsOn ? (
           <>
-            <p className="hint">You get Bellio&rsquo;s reminder texts at the number you signed up with.</p>
+            <p className="hint">Text <strong>WEEK</strong> to {site.smsNumber} anytime to see the next 7 days.</p>
             <button
               className="link-btn danger"
               onClick={() =>
@@ -200,6 +203,171 @@ export default function FamilyPage() {
         {isOwner && <DeleteFamily onDelete={act} />}
       </div>
     </section>
+  );
+}
+
+function Upcoming({ items, onRemove }) {
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? items : items.slice(0, 8);
+  const days = [];
+  for (const i of shown) {
+    if (days.at(-1)?.day !== i.day) days.push({ day: i.day, items: [] });
+    days.at(-1).items.push(i);
+  }
+  return (
+    <div className="setup-card">
+      <h2>Coming up</h2>
+      {items.length === 0 ? (
+        <p className="hint">Nothing in the next 30 days yet. Reminders from your school emails show up here.</p>
+      ) : (
+        <>
+          <p className="hint">The next 30 days. See something wrong? Remove it and {site.name} won&rsquo;t text it.</p>
+          <div className="upcoming">
+            {days.map((d) => (
+              <div key={d.day} className="upcoming-day">
+                <h3>{d.day}</h3>
+                <ul className="row-list">
+                  {d.items.map((i) => (
+                    <li key={i.id} className={`row${i.headsUp ? " heads-up" : ""}`}>
+                      <div>
+                        <strong>{i.title}</strong>
+                        {i.who && <span className="who"> {i.who}</span>}
+                        {(i.action || i.texted) && (
+                          <div className="hint">
+                            {i.action}
+                            {i.action && i.texted ? " · " : ""}
+                            {i.texted ? "already texted" : ""}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        className="link-btn danger"
+                        aria-label={`Remove ${i.title}`}
+                        onClick={() =>
+                          window.confirm(`Remove "${i.title}"? ${site.name} won't text it, even if it shows up in another email.`) &&
+                          onRemove({ action: "dismissEvent", eventId: i.id }, "Removed. It won\u2019t be texted.")
+                        }
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {items.length > 8 && (
+            <button className="link-btn" onClick={() => setShowAll(!showAll)}>
+              {showAll ? "Show less" : `Show all ${items.length}`}
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function PhoneNumber({ me, pendingEnd, onAct }) {
+  const [step, setStep] = useState(pendingEnd ? "code" : "idle"); // idle | enter | code
+  const [phone, setPhone] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const run = async (body, note) => {
+    setBusy(true);
+    const ok = await onAct(body, note);
+    setBusy(false);
+    return ok;
+  };
+
+  if (step === "idle") {
+    return (
+      <p className="hint">
+        Texts go to your phone ending in <strong>{me.phoneEnd}</strong>.{" "}
+        <button className="link-btn" onClick={() => setStep("enter")}>Change number</button>
+      </p>
+    );
+  }
+
+  if (step === "enter") {
+    return (
+      <div className="phone-change">
+        <label className="setup-label">
+          New mobile number
+          <input
+            className="setup-input"
+            type="tel"
+            autoComplete="tel"
+            placeholder="(555) 555-5555"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </label>
+        <label className="consent-line">
+          <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+          <span>
+            I agree to get {site.name} reminder texts at this number. Msg frequency varies. Msg &amp; data rates may
+            apply. Reply STOP to cancel, HELP for help.
+          </span>
+        </label>
+        <div className="row-actions">
+          <button
+            className="btn-secondary"
+            disabled={busy}
+            onClick={async () => {
+              if (await run({ action: "startPhoneChange", phone, consent }, "We texted a 6-digit code to your new number.")) {
+                setStep("code");
+              }
+            }}
+          >
+            {busy ? "Sending…" : "Text me a code"}
+          </button>
+          <button className="link-btn" onClick={() => setStep("idle")}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="phone-change">
+      <label className="setup-label">
+        Enter the 6-digit code we texted{pendingEnd ? ` to the number ending in ${pendingEnd}` : ""}
+        <input
+          className="setup-input code-input"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          placeholder="123456"
+          value={code}
+          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+        />
+      </label>
+      <div className="row-actions">
+        <button
+          className="btn-secondary"
+          disabled={busy || code.length !== 6}
+          onClick={async () => {
+            if (await run({ action: "confirmPhoneChange", code }, "Your number is updated. Texts now go to your new phone.")) {
+              setStep("idle");
+              setCode("");
+            }
+          }}
+        >
+          {busy ? "Checking…" : "Confirm"}
+        </button>
+        <button
+          className="link-btn"
+          onClick={() => {
+            onAct({ action: "cancelPhoneChange" });
+            setStep("idle");
+            setCode("");
+          }}
+        >
+          Cancel
+        </button>
+      </div>
+      <p className="hint">The code expires in 10 minutes. Didn&rsquo;t get it? Cancel and try again.</p>
+    </div>
   );
 }
 

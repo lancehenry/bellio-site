@@ -81,3 +81,12 @@ Postmark webhook URL: `https://heybellio.com/api/inbound?token=YOUR_INBOUND_WEBH
 
 - `/setup` (`app/setup/`): step-by-step Gmail, Outlook, iCloud, and manual instructions. Parents enter their school's email domain and pick services (ParentSquare, Smore, and so on), and the page builds the exact Gmail filter text.
 - Linked from the signup and join confirmations (with the family's address filled in), the welcome texts, the HELP reply, the Gmail-code text, and the site footer.
+
+## Manage Family, reminders, and status (upgrades 005–007)
+
+- **Manage Family** (heybellio.com/family): parents sign in with a one-time text link (text SETTINGS). They can edit kids, invite or remove a co-parent, stop texts, leave, or delete the family.
+- **Coming up list:** Manage Family shows the next 30 days of reminders. A parent can remove a wrong one; it's marked dismissed, so it isn't texted and isn't added back by a later email.
+- **WEEK text:** parents text WEEK for the next 7 days.
+- **Change phone number:** on Manage Family, a 6-digit code is texted to the new number. The old number gets a notice.
+- **Daily status report:** each morning, a short text to `ADMIN_PHONE` (emails in, any that failed, texts sent, whether the nightly job ran). View it any time at `/api/admin/status?key=YOUR_CRON_SECRET`.
+- Run `supabase/migration-005-family-settings.sql`, `migration-006-first-email-text.sql`, and `migration-007-fixes-phone-status.sql` in order.

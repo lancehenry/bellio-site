@@ -3,6 +3,8 @@
 //      emails that arrived after last night's text went out (Sunday-night newsletters!).
 //   2. Runs the daily data cleanup (bellio_purge in the database): wipes old email
 //      contents, deletes old events, texts, invites, and canceled families.
+//   3. Texts you the daily status report (to ADMIN_PHONE, if set in Vercel).
+//      See it any time at /api/admin/status?key=YOUR_CRON_SECRET
 //
 // Run the cleanup by hand: add &cleanup=1 to the link below.
 //
@@ -13,8 +15,10 @@
 // Nothing is actually texted unless SMS_SENDING_ENABLED=true in Vercel.
 
 import { query, rpc } from "@/lib/db";
-import { smsEnabled } from "@/lib/sms";
+import { sendSms, smsEnabled } from "@/lib/sms";
+import { buildStatus, recordJobRun, statusText } from "@/lib/status";
 import { localNow, sendFamilyReminder } from "@/lib/reminders";
+import { normalizePhone } from "@/lib/households";
 
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
@@ -60,7 +64,22 @@ export async function GET(request) {
     }
   }
 
+  // Daily status report to you (only on the real morning run).
+  let report = null;
+  if (fromVercelCron) {
+    await recordJobRun("morning", { families: results.length, cleanup: !cleanup?.error });
+    try {
+      report = statusText(await buildStatus({ cleanup }));
+      const adminPhone = normalizePhone(process.env.ADMIN_PHONE);
+      if (adminPhone) await sendSms({ id: null, household_id: null, phone: adminPhone }, report);
+      else console.log(`Daily status (set ADMIN_PHONE in Vercel to get this by text):\n${report}`);
+    } catch (err) {
+      console.error(`Daily status report failed: ${err.message}`);
+    }
+  }
+
   return Response.json({
+    ...(report ? { report } : {}),
     ...(cleanup ? { cleanup } : {}),
     mode: sendForReal ? (smsEnabled() ? "sent" : "dry run (SMS_SENDING_ENABLED is off)") : "preview",
     familiesChecked: households.length,

@@ -6,6 +6,8 @@
 //   STOP / START  → opts that one person out or back in (Twilio sends the confirmation text itself)
 //   HELP          → replies with help info
 //   INVITE        → replies with the link a co-parent uses to join the household
+//   SETTINGS      → replies with a one-time sign-in link for the Manage Family page
+//   WEEK          → replies with the next 7 days of reminders
 //   Photo         → reads the flyer and saves its dates, then texts back what it found
 //   Anything else → saved, with a friendly reply
 
@@ -19,6 +21,7 @@ import { handleLateArrivals } from "@/lib/reminders";
 import { recordConsent } from "@/lib/consent";
 import { LIMITS, overLimit } from "@/lib/protect";
 import { createLoginLink, LOGIN_LINK_MINUTES } from "@/lib/session";
+import { getUpcoming, weekText } from "@/lib/upcoming";
 import {
   FULL_FAMILY_MESSAGE,
   INVITE_DAYS,
@@ -38,10 +41,11 @@ const START_WORDS = ["START", "UNSTOP", "YES", "SUBSCRIBE"];
 const HELP_WORDS = ["HELP", "INFO"];
 const INVITE_WORDS = ["INVITE", "ADD", "COPARENT", "ADDPARENT"];
 const SETTINGS_WORDS = ["SETTINGS", "SETTING", "MANAGE", "ACCOUNT", "FAMILY", "KIDS"];
+const WEEK_WORDS = ["WEEK", "THISWEEK", "UPCOMING", "SCHEDULE", "CALENDAR", "NEXT"];
 
 const HELP_TEXT =
   "Bellio: School reminders by text. Forward school emails to your Bellio address or text us a photo of a flyer. " +
-  "Setup help: heybellio.com/setup. Text SETTINGS to manage your family, INVITE to add a co-parent. Questions: hello@heybellio.com. Msg & data rates may apply. Reply STOP to cancel.";
+  "Setup help: heybellio.com/setup. Text WEEK for the next 7 days, SETTINGS to manage your family, INVITE to add a co-parent. Questions: hello@heybellio.com. Msg & data rates may apply. Reply STOP to cancel.";
 
 export async function POST(request) {
   const form = await request.formData();
@@ -125,7 +129,16 @@ export async function POST(request) {
     );
   }
 
-  // 6. A photo of a flyer: read it after replying, since that can take a little while.
+  // 6. The next 7 days of reminders.
+  if (WEEK_WORDS.includes(keyword)) {
+    if (await overLimit(LIMITS.weekPerMember, member.id)) {
+      return twiml("Bellio: You've asked for your week several times today. Text SETTINGS to see everything online.");
+    }
+    const kids = await getKids(household.id);
+    return twiml(weekText(await getUpcoming(household, kids, 7)));
+  }
+
+  // 7. A photo of a flyer: read it after replying, since that can take a little while.
   const mediaCount = Number(params.NumMedia || 0);
   if (mediaCount > 0) {
     if (await overLimit(LIMITS.photosPerMember, member.id)) {
@@ -135,9 +148,9 @@ export async function POST(request) {
     return twiml();
   }
 
-  // 7. Anything else: saved above. A friendly pointer back to how Bellio works.
+  // 8. Anything else: saved above. A friendly pointer back to how Bellio works.
   return twiml(
-    `Bellio: Thanks, got it! To add school info, forward emails to ${forwardingAddress(household)} or text a photo of a flyer. Text INVITE to add a co-parent.`
+    `Bellio: Thanks, got it! To add school info, forward emails to ${forwardingAddress(household)} or text a photo of a flyer. Text WEEK to see what's coming up.`
   );
 }
 
