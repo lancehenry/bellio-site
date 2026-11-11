@@ -56,9 +56,9 @@ export default function SetupGuide() {
 
   return (
     <div className="setup-guide">
-      {/* Step A: their Bellio address */}
+      {/* Step 1: their Bellio address */}
       <div className="setup-card">
-        <h2><span className="step-num">A</span> Your family&rsquo;s Bellio address</h2>
+        <h2><span className="step-num">1</span> Your family&rsquo;s Bellio address</h2>
         {bellio ? (
           <CopyField value={bellio} />
         ) : (
@@ -78,9 +78,9 @@ export default function SetupGuide() {
         )}
       </div>
 
-      {/* Step B: which senders count as school email */}
+      {/* Step 2: which senders count as school email */}
       <div className="setup-card">
-        <h2><span className="step-num">B</span> Which emails are from school?</h2>
+        <h2><span className="step-num">2</span> Which emails are from school?</h2>
         <label className="setup-label">
           Your school district&rsquo;s email domain
           <input
@@ -110,9 +110,9 @@ export default function SetupGuide() {
         )}
       </div>
 
-      {/* Step C: email-provider steps */}
+      {/* Step 3: email-provider steps */}
       <div className="setup-card">
-        <h2><span className="step-num">C</span> Set up the rule</h2>
+        <h2><span className="step-num">3</span> Set up the rule</h2>
         <div className="tabs" role="tablist">
           {TABS.map((t) => (
             <button
@@ -142,7 +142,7 @@ export default function SetupGuide() {
             <ol>
               <li>Click the <strong>gear icon</strong> (top right), then <strong>See all settings</strong>.</li>
               <li>Open the <strong>Forwarding and POP/IMAP</strong> tab and click <strong>Add a forwarding address</strong>.</li>
-              <li>Enter your Bellio address{bellio ? "" : " (step A)"}, then click <strong>Next</strong> and <strong>Proceed</strong>.</li>
+              <li>Enter your Bellio address{bellio ? "" : " (step 1)"}, then click <strong>Next</strong> and <strong>Proceed</strong>.</li>
               <li>
                 Gmail sends a confirmation code to Bellio. <strong>We&rsquo;ll text you the code</strong> within a
                 minute. Type it into the <strong>Verify</strong> box and click <strong>Verify</strong>.
@@ -157,7 +157,7 @@ export default function SetupGuide() {
               <li>Open the <strong>Filters and Blocked Addresses</strong> tab and click <strong>Create a new filter</strong>.</li>
               <li>
                 In the <strong>From</strong> box, paste:
-                {gmailFrom ? <CopyField value={gmailFrom} /> : <span className="hint"> (fill in step B to get this)</span>}
+                {gmailFrom ? <CopyField value={gmailFrom} /> : <span className="hint"> (fill in step 2 to get this)</span>}
               </li>
               <li>Click <strong>Create filter</strong>.</li>
               <li>
@@ -185,12 +185,12 @@ export default function SetupGuide() {
                 {senders.length ? (
                   <ul className="sender-list">{senders.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
                 ) : (
-                  <span className="hint"> (fill in step B to see them)</span>
+                  <span className="hint"> (fill in step 2 to see them)</span>
                 )}
               </li>
               <li>
                 For the action, choose <strong>Forward to</strong> and enter your Bellio address
-                {bellio ? <CopyField value={bellio} /> : " (step A)."}
+                {bellio ? <CopyField value={bellio} /> : " (step 1)."}
               </li>
               <li>Click <strong>Save</strong>.</li>
             </ol>
@@ -218,12 +218,12 @@ export default function SetupGuide() {
                 {senders.length ? (
                   <ul className="sender-list">{senders.map((s) => <li key={s}><code>{s}</code></li>)}</ul>
                 ) : (
-                  <span className="hint"> (fill in step B to see them)</span>
+                  <span className="hint"> (fill in step 2 to see them)</span>
                 )}
               </li>
               <li>
                 Set <strong>Then</strong> to <strong>Forward to</strong> and enter your Bellio address
-                {bellio ? <CopyField value={bellio} /> : " (step A)."}
+                {bellio ? <CopyField value={bellio} /> : " (step 1)."}
               </li>
               <li>Click <strong>Done</strong>. Add one rule for each sender.</li>
             </ol>
@@ -244,7 +244,7 @@ export default function SetupGuide() {
             <ul>
               <li>
                 <strong>Forward by hand:</strong> tap <strong>Forward</strong> on any school email and send it to
-                your Bellio address{bellio ? <CopyField value={bellio} /> : " (step A)."}
+                your Bellio address{bellio ? <CopyField value={bellio} /> : " (step 1)."}
                 {" "}Tip: save the address as a contact named &ldquo;Bellio.&rdquo;
               </li>
               <li>
