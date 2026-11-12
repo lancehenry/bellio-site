@@ -444,7 +444,7 @@ export default function SetupGuide() {
             {tab === "other" ? "Got it" : "I\u2019ve set up my rule"}
           </button>
           <p className="hint">
-            Stuck? Text <strong>HELP</strong> to {site.smsNumber} or email{" "}
+            Stuck? See the <a href="/faq">FAQ</a>, text <strong>HELP</strong> to {site.smsNumber}, or email{" "}
             <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
           </p>
         </div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import site from "@/site.config";
 import SignupForm from "./SignupForm";
 
@@ -75,6 +76,9 @@ export default function Home() {
               We&rsquo;re starting with a small group of parents. Sign up and
               we&rsquo;ll send your personal forwarding address and setup
               steps.
+            </p>
+            <p className="faq-link">
+              Questions first? <Link href="/faq">Read the FAQ</Link>.
             </p>
           </div>
           <SignupForm />
