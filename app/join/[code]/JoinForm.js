@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import ConsentCheckbox from "../../ConsentCheckbox";
 import CopyField from "../../CopyField";
 import BotCheck, { botCheckFields, resetBotCheck } from "../../BotCheck";
@@ -82,6 +83,10 @@ export default function JoinForm({ code }) {
       <button type="submit" className="btn" disabled={status === "sending"}>
         {status === "sending" ? "Joining…" : "Join family"}
       </button>
+      <p className="agree-note">
+        By joining, you agree to our <Link href="/terms-of-service">Terms of Service</Link> and{" "}
+        <Link href="/privacy">Privacy Policy</Link>.
+      </p>
       {status === "error" && (
         <p className="form-error" role="alert">
           {error}

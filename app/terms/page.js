@@ -39,8 +39,8 @@ export default function Terms() {
       <h2>Message frequency</h2>
       <p>
         Message frequency varies based on your school&rsquo;s schedule, usually
-        no more than one reminder per evening, plus occasional account
-        messages.
+        one reminder in the evening and sometimes a morning reminder, plus
+        occasional account messages and replies to texts you send us.
       </p>
 
       <h2>Costs</h2>
@@ -67,8 +67,8 @@ export default function Terms() {
       <p>
         Reminders are created automatically from the content you send and may
         occasionally be incomplete or wrong. Always check the original school
-        communication for important dates. You can reply to a reminder to flag
-        a correction.
+        communication for important dates. To remove a wrong reminder, text{" "}
+        <strong>SETTINGS</strong> for a link to your Manage Family page.
       </p>
 
       <h2>Privacy</h2>
@@ -82,6 +82,8 @@ export default function Terms() {
       <p>
         We may update these terms and will post changes on this page. These
         terms are governed by the laws of the State of {site.governingState}.
+        These SMS Terms are part of our full{" "}
+        <Link href="/terms-of-service">Terms of Service</Link>.
       </p>
 
       <h2>Contact</h2>

@@ -12,7 +12,7 @@ const site = {
   governingState: "Kansas",
   // Fill in once Twilio gives you the number.
   smsNumber: "(866) 456-3681",
-  lastUpdated: "November 9, 2026",
+  lastUpdated: "November 11, 2026",
 };
 
 export default site;

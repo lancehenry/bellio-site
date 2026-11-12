@@ -50,6 +50,7 @@ export default function RootLayout({ children }) {
             <nav>
               <Link href="/setup">Setup guide</Link>
               <Link href="/family">Manage family</Link>
+              <Link href="/terms-of-service">Terms of Service</Link>
               <Link href="/privacy">Privacy Policy</Link>
               <Link href="/terms">SMS Terms</Link>
             </nav>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import site from "@/site.config";
 
 export const metadata = { title: `Privacy Policy — ${site.name}` };
@@ -13,7 +14,8 @@ export default function Privacy() {
         track of school events by turning school emails and flyers into text
         reminders. This policy explains what we collect, how we use it, and the
         choices you have. It applies to {site.domain} and the {site.name}{" "}
-        text message service.
+        text message service, and is part of our{" "}
+        <Link href="/terms-of-service">Terms of Service</Link>.
       </p>
 
       <h2>What we collect</h2>
