@@ -204,7 +204,7 @@ async function processPhotos(member, household, params, mediaCount, caption) {
           const who = kids.length > 1 && e.kid_ids?.length && e.kid_ids.length < kids.length
             ? ` (${e.kid_ids.map((id) => nameOf.get(id)).join(" & ")})`
             : "";
-          return `• ${dayLabel(e.date)}: ${e.title}${who}`;
+          return `- ${dayLabel(e.date)}: ${e.title}${who}`;
         })
         .join("\n");
       const more = saved.length > 4 ? `\n+ ${saved.length - 4} more` : "";

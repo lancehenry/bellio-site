@@ -62,11 +62,30 @@ export default function Privacy() {
         <li>To manage your account and subscription.</li>
         <li>To fix problems and improve the accuracy of reminders.</li>
       </ul>
+      <h2>How we use AI</h2>
       <p>
-        We use AI services to process the emails and flyers you send so we can
-        extract events. We only send that content to these services to provide
-        {" "}{site.name} to you.
+        We use an AI service, Claude by Anthropic, to read the emails and
+        flyers you send and pull out dates and to-dos, and to write your
+        reminder texts. We send it only what&rsquo;s needed to provide{" "}
+        {site.name} to you.
       </p>
+      <ul>
+        <li>
+          <strong>Not used to train AI.</strong> Under our business agreement
+          with Anthropic, it doesn&rsquo;t use your content to train its AI
+          models. We don&rsquo;t use your emails, flyers, or your
+          children&rsquo;s information to train AI models either.
+        </li>
+        <li>
+          <strong>Deleted quickly.</strong> Anthropic deletes what we send it
+          within 30 days. The only exception is content flagged as possible
+          misuse of its service, which it may keep longer to investigate.
+        </li>
+        <li>
+          <strong>Kept separate.</strong> Your content isn&rsquo;t shared with
+          other Anthropic customers or made searchable by anyone.
+        </li>
+      </ul>
 
       <h2>What we don&rsquo;t do</h2>
       <ul>
@@ -102,7 +121,8 @@ export default function Privacy() {
           and within 7 days at most. A bare record that an email arrived is
           deleted after 30 days. Our email provider, Postmark, also keeps a
           copy of incoming emails for up to 45 days for spam and abuse
-          prevention, then deletes it.
+          prevention, then deletes it. Our AI provider deletes what we send it
+          within 30 days.
         </li>
         <li>
           <strong>Reminders (dates and to-dos):</strong> deleted 30 days after

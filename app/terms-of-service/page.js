@@ -65,7 +65,8 @@ export default function TermsOfService() {
         <li>
           You keep ownership of the emails, photos, and other content you send. You give us permission to
           store, copy, and process that content (including with the AI and other service providers listed
-          in our Privacy Policy) only to provide and improve the Service for you.
+          in our Privacy Policy) only to provide and improve the Service for you. We don&rsquo;t use
+          your content to train AI models, and our AI provider isn&rsquo;t allowed to either.
         </li>
         <li>
           Only send us school communications you&rsquo;re allowed to share, such as emails and flyers your

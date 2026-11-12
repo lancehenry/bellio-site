@@ -189,7 +189,7 @@ async function confirmFirstEmail(household, subject, found) {
     if (!claimed.length) return;
 
     const title = String(subject || "").replace(/^\s*((fwd?|fw)\s*:\s*)+/i, "").trim();
-    const short = title.length > 40 ? `${title.slice(0, 39).trim()}\u2026` : title;
+    const short = title.length > 40 ? `${title.slice(0, 37).trim()}...` : title;
     const what = short ? `your first school email ("${short}")` : "your first school email";
     const next = found
       ? `We found ${found} thing${found === 1 ? "" : "s"} to remind you about and will text you the night before.`

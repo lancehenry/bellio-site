@@ -355,6 +355,17 @@ function sections() {
           ),
         },
         {
+          q: "Is my information used to train AI?",
+          a: (
+            <p>
+              No. {site.name} uses Claude by Anthropic to read your school emails. Under our business
+              agreement, Anthropic doesn&rsquo;t use your content to train its AI, and it deletes what we
+              send within 30 days. We don&rsquo;t use it to train AI either, and it&rsquo;s never shared
+              with or searchable by anyone else.
+            </p>
+          ),
+        },
+        {
           q: "What do you know about my kids?",
           a: (
             <p>
