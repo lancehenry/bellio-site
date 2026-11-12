@@ -49,6 +49,7 @@ export default function RootLayout({ children }) {
             </p>
             <nav>
               <Link href="/faq">FAQ</Link>
+              {site.pricing?.show && <Link href="/pricing">Pricing</Link>}
               <Link href="/setup">Setup guide</Link>
               <Link href="/family">Manage family</Link>
               <Link href="/terms-of-service">Terms of Service</Link>

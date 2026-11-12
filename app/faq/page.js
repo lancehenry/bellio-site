@@ -28,13 +28,30 @@ function sections() {
         },
         {
           q: "How much does it cost?",
-          a: (
-            <p>
-              {site.name} is free during the beta. If we start charging later, we&rsquo;ll tell you the
-              price first, and you&rsquo;ll choose whether to keep going. We won&rsquo;t charge you without
-              your agreement.
-            </p>
-          ),
+          a: (() => {
+            const p = site.pricing || {};
+            const plans = p.monthly
+              ? `$${p.monthly} a month or $${p.yearly} a year per family, with a ${p.trialDays}-day free trial`
+              : null;
+            const link = p.show ? (
+              <>
+                {" "}
+                See <Link href="/pricing">pricing</Link>.
+              </>
+            ) : null;
+            return p.beta || !plans ? (
+              <p>
+                {site.name} is free during the beta. {plans ? `After the beta, it will be ${plans}. ` : ""}
+                Before we start charging, we&rsquo;ll tell you, and you&rsquo;ll choose whether to keep going.
+                We won&rsquo;t charge you without your agreement.{link}
+              </p>
+            ) : (
+              <p>
+                {plans.charAt(0).toUpperCase() + plans.slice(1)}. One price covers both parents and all your
+                kids, and you can cancel anytime.{link}
+              </p>
+            );
+          })(),
         },
         {
           q: "Who can sign up?",

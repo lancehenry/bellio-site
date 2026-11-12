@@ -13,6 +13,18 @@ const site = {
   // Fill in once Twilio gives you the number.
   smsNumber: "(866) 456-3681",
   lastUpdated: "November 11, 2026",
+
+  // Pricing. Change these and redeploy; the pricing page, footer link, and FAQ follow.
+  pricing: {
+    // false hides the pricing page (heybellio.com/pricing shows "not found") and its footer link.
+    show: true,
+    // true shows "Free during the beta" on the pricing page and in the FAQ, and the
+    // button says "Join the free beta". Set to false when you start charging.
+    beta: true,
+    monthly: 7, // dollars per family per month
+    yearly: 60, // dollars per family per year
+    trialDays: 30,
+  },
 };
 
 export default site;

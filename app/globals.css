@@ -429,3 +429,35 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
 .faq-more { margin-top: 40px; }
 .faq-more p { color: #c3cadc; margin: 0 0 8px; }
 .faq-link { color: var(--muted); font-size: .95rem; } .faq-link a { color: var(--accent-2); }
+
+/* Pricing */
+.pricing { max-width: 860px; padding-top: 48px; padding-bottom: 80px; }
+.pricing h1 { font-size: 2.3rem; margin-bottom: 12px; }
+.pricing .lede { max-width: 46ch; }
+.beta-banner { border: 1px solid rgba(34,211,238,.45); background: rgba(34,211,238,.07); border-radius: 12px; padding: 14px 18px; color: #c3cadc; line-height: 1.6; margin: 0 0 28px; }
+.beta-banner strong { color: var(--accent-2); }
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+@media (max-width: 640px) { .plans { grid-template-columns: 1fr; } }
+.plan { position: relative; display: flex; flex-direction: column; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 24px 24px; }
+.plan.featured { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(91,140,255,.35), 0 18px 50px rgba(91,140,255,.15); }
+.plan h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; }
+.plan .price { font-size: 2.8rem; font-weight: 700; margin: 4px 0 0; line-height: 1.1; color: var(--text); }
+.plan .price span { font-size: 1rem; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.plan-note { color: var(--muted); margin: 0 0 10px; font-size: .92rem; }
+.plan-points { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 6px; color: #c3cadc; }
+.plan-points li::before { content: "\2713"; color: var(--accent-2); margin-right: 8px; }
+.plan-badge { position: absolute; top: -12px; left: 24px; margin: 0; padding: 3px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; letter-spacing: .04em; color: #0a0e1a; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.plan-btn { margin-top: auto; text-align: center; text-decoration: none; justify-content: center; }
+.included { margin-bottom: 32px; }
+.check-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; color: #c3cadc; }
+.check-list li { display: flex; gap: 10px; }
+.check-list li::before { content: "\2713"; color: var(--accent-2); font-weight: 700; }
+.pricing-faq h2 { font-size: .85rem; text-transform: uppercase; letter-spacing: .08em; color: var(--accent-2); margin: 0 0 4px; }
+.pricing-faq .hint { margin-top: 18px; color: var(--muted); }
+
+/* Footer on phones: links in two tidy columns, larger tap targets */
+@media (max-width: 640px) {
+  .footer-inner { flex-direction: column; gap: 20px; }
+  .footer-inner nav { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; width: 100%; }
+  .footer-inner nav a { padding: 8px 0; }
+}
