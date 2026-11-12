@@ -120,6 +120,39 @@ export default function TermsOfService() {
         charge you without your agreement. Any paid plan will explain how billing, trials, and
         cancellation work before you sign up for it.
       </p>
+      <p>Once paid plans begin, these rules apply:</p>
+      <ul>
+        <li>
+          <strong>Free trial.</strong> New families get a {site.pricing.trialDays}-day free trial. We&rsquo;ll
+          text you before it ends. Cancel before the trial ends and you won&rsquo;t be charged.
+        </li>
+        <li>
+          <strong>Renewal.</strong> Paid plans renew automatically (monthly or yearly) until you cancel. We&rsquo;ll
+          text you about {site.pricing.renewalReminderDays} days before a yearly plan renews, with the date and
+          price.
+        </li>
+        <li>
+          <strong>Canceling.</strong> You can cancel anytime. Your plan won&rsquo;t renew, and you keep{" "}
+          {site.name} through the end of the month or year you&rsquo;ve already paid for.
+        </li>
+        <li>
+          <strong>Monthly refunds.</strong> Monthly payments aren&rsquo;t refunded, including partial months.
+        </li>
+        <li>
+          <strong>Yearly refunds.</strong> If you ask within {site.pricing.refundDays} days of being charged for a
+          yearly plan (including a renewal), we&rsquo;ll refund the full amount and end your plan. After that,
+          yearly payments aren&rsquo;t refunded, but you keep {site.name} until the year ends.
+        </li>
+        <li>
+          <strong>How to ask.</strong> Email {email} with your name and phone number, or ask on the
+          Manage Family page once that option is available. Refunds go back to the card you paid with, usually
+          within 5 to 10 business days.
+        </li>
+        <li>
+          We may make exceptions in special situations, such as a family that moves mid-year. Nothing here limits
+          any refund rights you have under the law.
+        </li>
+      </ul>
 
       <h2>9. Stopping or ending the Service</h2>
       <ul>
@@ -135,7 +168,7 @@ export default function TermsOfService() {
         </li>
         <li>
           <strong>We may change or end the Service.</strong> If we shut down {site.name}, we&rsquo;ll give
-          you reasonable notice by text or email when we can.
+          you reasonable notice by text or email when we can, and refund the unused part of any yearly plan.
         </li>
         <li>
           After an account ends, we delete its data as described in our Privacy Policy. Sections 4, 5, and

@@ -129,8 +129,27 @@ export default function Pricing() {
           <summary>Can I cancel anytime?</summary>
           <div className="faq-answer">
             <p>
-              Yes. There&rsquo;s no contract. Texts stop, and you can delete your family and its data on the{" "}
-              <Link href="/family">Manage Family</Link> page.
+              Yes. There&rsquo;s no contract. Your plan won&rsquo;t renew, and you keep {site.name} through the
+              month or year you&rsquo;ve already paid for. You can also delete your family and its data anytime on
+              the <Link href="/family">Manage Family</Link> page.
+            </p>
+          </div>
+        </details>
+        <details className="faq-item">
+          <summary>Can I get a refund?</summary>
+          <div className="faq-answer">
+            <p>
+              <strong>Yearly:</strong> yes, a full refund if you ask within {p.refundDays} days of being charged,
+              including at renewal. We&rsquo;ll also text you about {p.renewalReminderDays} days before your year
+              renews, so it never sneaks up on you.
+            </p>
+            <p>
+              <strong>Monthly:</strong> monthly payments aren&rsquo;t refunded, but you can cancel anytime and
+              won&rsquo;t be charged again.
+            </p>
+            <p>
+              Just email <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>. See our{" "}
+              <Link href="/terms-of-service">Terms of Service</Link> for details.
             </p>
           </div>
         </details>

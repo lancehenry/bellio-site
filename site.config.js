@@ -24,6 +24,9 @@ const site = {
     monthly: 7, // dollars per family per month
     yearly: 60, // dollars per family per year
     trialDays: 30,
+    // Refund policy (shown in the Terms and on the pricing page):
+    refundDays: 14, // full refund on a yearly plan if asked within this many days of the charge
+    renewalReminderDays: 7, // we text this many days before a yearly plan renews
   },
 };
 
