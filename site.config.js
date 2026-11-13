@@ -17,7 +17,7 @@ const site = {
   // Pricing. Change these and redeploy; the pricing page, footer link, and FAQ follow.
   pricing: {
     // false hides the pricing page (heybellio.com/pricing shows "not found") and its footer link.
-    show: false,
+    show: true,
     // true shows "Free during the beta" on the pricing page and in the FAQ, and the
     // button says "Join the free beta". Set to false when you start charging.
     beta: true,
