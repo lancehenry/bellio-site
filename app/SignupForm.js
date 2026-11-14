@@ -19,6 +19,8 @@ export default function SignupForm() {
     setKids((list) => list.map((k, j) => (j === i ? { ...k, [field]: value } : k)));
   const addKid = () => setKids((list) => (list.length < MAX_KIDS ? [...list, emptyKid()] : list));
   const removeKid = (i) => setKids((list) => list.filter((_, j) => j !== i));
+  // With two or more kids, grade and school are required for each one.
+  const multiKid = kids.filter((k) => k.firstName.trim()).length >= 2;
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -108,7 +110,11 @@ export default function SignupForm() {
 
       <fieldset className="kids">
         <legend>Your kids</legend>
-        <p className="hint">Grade and school help us match each reminder to the right kid.</p>
+        <p className={`hint${multiKid ? " kid-rule" : ""}`}>
+          {multiKid
+            ? "With more than one child, add each child's grade (like K or 4th) and school so we know whose reminder is whose."
+            : "Grade (like K or 4th) and school help us match each reminder to the right kid."}
+        </p>
         {kids.map((kid, i) => (
           <div className="kid-row" key={i}>
             <input
@@ -120,15 +126,17 @@ export default function SignupForm() {
             />
             <input
               aria-label={`Child ${i + 1} grade`}
-              placeholder="Grade (e.g. K, 3rd)"
+              placeholder="Grade"
               value={kid.grade}
               onChange={(e) => setKid(i, "grade", e.target.value)}
+              required={multiKid && !!kid.firstName.trim()}
             />
             <input
               aria-label={`Child ${i + 1} school`}
-              placeholder="School (optional)"
+              placeholder={multiKid ? "School or daycare" : "School (optional)"}
               value={kid.school}
               onChange={(e) => setKid(i, "school", e.target.value)}
+              required={multiKid && !!kid.firstName.trim()}
             />
             {kids.length > 1 && (
               <button type="button" className="remove-kid" onClick={() => removeKid(i)} aria-label={`Remove child ${i + 1}`}>

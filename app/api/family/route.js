@@ -32,6 +32,8 @@ import {
   getMembers,
   inviteUrl,
   normalizePhone,
+  kidMissing,
+  KID_DETAILS_MESSAGE,
 } from "@/lib/households";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +105,7 @@ export async function POST(request) {
         if (!kid) return json({ error: "Please enter the child's first name." }, 400);
         const kids = await getKids(household.id);
         if (kids.length >= MAX_KIDS) return json({ error: `A family can have up to ${MAX_KIDS} kids.` }, 400);
+        if (kids.length >= 1 && kidMissing(kid).length) return json({ error: KID_DETAILS_MESSAGE }, 400);
         await insert("kids", { household_id: household.id, ...kid });
         break;
       }
@@ -111,6 +114,8 @@ export async function POST(request) {
         if (!kidRow) return json({ error: "That child isn't in your family." }, 404);
         const [kid] = cleanKids([body.kid]);
         if (!kid) return json({ error: "Please enter the child's first name." }, 400);
+        const family = await getKids(household.id);
+        if (family.length >= 2 && kidMissing(kid).length) return json({ error: KID_DETAILS_MESSAGE }, 400);
         await update("kids", { id: kidRow.id }, kid);
         break;
       }

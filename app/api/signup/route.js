@@ -16,6 +16,8 @@ import {
 import {
   addKids,
   cleanKids,
+  kidsNeedDetails,
+  KID_DETAILS_MESSAGE,
   createInvite,
   findMemberByPhone,
   forwardingAddress,
@@ -76,6 +78,9 @@ export async function POST(request) {
   }
   if (!kids.length) {
     return Response.json({ error: "Please add at least one child's first name." }, { status: 400 });
+  }
+  if (kidsNeedDetails(kids)) {
+    return Response.json({ error: KID_DETAILS_MESSAGE }, { status: 400 });
   }
   if (body.smsConsent !== true) {
     return Response.json(

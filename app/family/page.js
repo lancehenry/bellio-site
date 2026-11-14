@@ -107,13 +107,27 @@ export default function FamilyPage() {
 
       <div className="setup-card">
         <h2>Kids</h2>
-        <p className="hint">Grade and school help Bellio match each reminder to the right kid.</p>
+        <p className="hint">Grade (like K or 4th) and school help Bellio match each reminder to the right kid.</p>
+        {kids.length >= 2 && kids.some((k) => !k.grade || !k.school) && (
+          <p className="notice kid-nudge" role="status">
+            Add a grade and school for{" "}
+            {listNames(kids.filter((k) => !k.grade || !k.school).map((k) => k.firstName))} so reminders go to the
+            right kid.
+          </p>
+        )}
         <ul className="row-list">
           {kids.map((k) => (
-            <KidRow key={k.id} kid={k} canRemove={kids.length > 1} onSave={act} setupUrl={setupUrl} />
+            <KidRow
+              key={k.id}
+              kid={k}
+              canRemove={kids.length > 1}
+              needsDetails={kids.length >= 2}
+              onSave={act}
+              setupUrl={setupUrl}
+            />
           ))}
         </ul>
-        {kids.length < maxKids && <AddKid onAdd={act} />}
+        {kids.length < maxKids && <AddKid onAdd={act} needsDetails={kids.length >= 1} />}
       </div>
 
       <div className="setup-card">
@@ -371,18 +385,26 @@ function PhoneNumber({ me, pendingEnd, onAct }) {
   );
 }
 
-function KidRow({ kid, canRemove, onSave, setupUrl }) {
+function listNames(names) {
+  if (names.length <= 1) return names[0] || "";
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
+function KidRow({ kid, canRemove, needsDetails, onSave, setupUrl }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(kid);
+  const missing = needsDetails && (!kid.grade || !kid.school);
   if (!editing) {
     return (
-      <li className="row">
+      <li className={`row${missing ? " needs-info" : ""}`}>
         <div>
           <strong>{kid.firstName}</strong>
           <div className="hint">{[kid.grade && `Grade ${kid.grade}`, kid.school].filter(Boolean).join(" · ") || "No grade or school yet"}</div>
         </div>
         <div className="row-actions">
-          <button className="link-btn" onClick={() => { setForm(kid); setEditing(true); }}>Edit</button>
+          <button className="link-btn" onClick={() => { setForm(kid); setEditing(true); }}>
+            {missing ? "Add grade & school" : "Edit"}
+          </button>
           {canRemove && (
             <button
               className="link-btn danger"
@@ -400,7 +422,7 @@ function KidRow({ kid, canRemove, onSave, setupUrl }) {
   }
   return (
     <li className="row editing">
-      <KidFields form={form} setForm={setForm} />
+      <KidFields form={form} setForm={setForm} required={needsDetails} />
       <div className="row-actions">
         <button
           className="btn-secondary"
@@ -426,14 +448,14 @@ function KidRow({ kid, canRemove, onSave, setupUrl }) {
   );
 }
 
-function AddKid({ onAdd }) {
+function AddKid({ onAdd, needsDetails }) {
   const empty = { firstName: "", grade: "", school: "" };
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(empty);
   if (!open) return <button className="add-kid" onClick={() => setOpen(true)}>+ Add a child</button>;
   return (
     <div className="row editing">
-      <KidFields form={form} setForm={setForm} />
+      <KidFields form={form} setForm={setForm} required={needsDetails} />
       <div className="row-actions">
         <button
           className="btn-secondary"
@@ -452,14 +474,31 @@ function AddKid({ onAdd }) {
   );
 }
 
-function KidFields({ form, setForm }) {
+function KidFields({ form, setForm, required }) {
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   return (
-    <div className="kid-row">
-      <input aria-label="First name" placeholder="First name" value={form.firstName} onChange={set("firstName")} />
-      <input aria-label="Grade" placeholder="Grade (e.g. K, 3rd)" value={form.grade} onChange={set("grade")} />
-      <input aria-label="School" placeholder="School (optional)" value={form.school} onChange={set("school")} />
-    </div>
+    <>
+      <div className="kid-row">
+        <input aria-label="First name" placeholder="First name" value={form.firstName || ""} onChange={set("firstName")} />
+        <input
+          aria-label="Grade"
+          placeholder="Grade"
+          value={form.grade || ""}
+          onChange={set("grade")}
+          aria-required={required || undefined}
+        />
+        <input
+          aria-label="School"
+          placeholder={required ? "School or daycare" : "School (optional)"}
+          value={form.school || ""}
+          onChange={set("school")}
+          aria-required={required || undefined}
+        />
+      </div>
+      {required && (
+        <p className="hint">With more than one child, grade and school are needed so we know whose reminder is whose.</p>
+      )}
+    </>
   );
 }
 
