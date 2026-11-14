@@ -284,8 +284,9 @@ function sections() {
           q: "How does Bellio know which kid a reminder is for?",
           a: (
             <p>
-              It uses each child&rsquo;s grade and school. That&rsquo;s why it helps to fill those in on the
-              Manage Family page and keep them up to date. Items for grades your kids aren&rsquo;t in are
+              It uses each child&rsquo;s grade and school. With two or more kids, both are required for each
+              child, so Bellio can tell whose reminder is whose. Keep them up to date on the Manage Family page,
+              especially at the start of a new school year. Items for grades your kids aren&rsquo;t in are
               skipped.
             </p>
           ),
@@ -386,8 +387,9 @@ function sections() {
           q: "What do you know about my kids?",
           a: (
             <p>
-              Only what you give us: first name, and grade and school if you add them. We never use it for
-              advertising, and we never sell your information.
+              Only a first name, grade, and school (grade and school are optional if you have one child). No
+              last names, birthdays, or photos. We use these only to match reminders to the right kid, never for
+              advertising or AI training, and we never sell your information.
             </p>
           ),
         },

@@ -25,9 +25,13 @@ export default function Privacy() {
           mobile phone number.
         </li>
         <li>
-          <strong>Your children&rsquo;s basic details:</strong> first name,
-          grade, and school, if you choose to add them, so reminders go to the
-          right person.
+          <strong>Your children&rsquo;s basic details:</strong> each
+          child&rsquo;s first name, and their grade and school. Grade and
+          school are optional for a family with one child, and required once a
+          family has two or more, so we can tell whose reminder is whose. We
+          use these details only to match school events to the right child.
+          We don&rsquo;t ask for last names, birthdays, photos, or anything
+          else about your children.
         </li>
         <li>
           <strong>Family members:</strong> if you invite a co-parent, they
@@ -183,7 +187,12 @@ export default function Privacy() {
         {site.name} is for parents and guardians, not children. We don&rsquo;t
         knowingly collect information directly from children under 13. Any
         information about children comes from their parent or guardian, who
-        can review or delete it at any time.
+        can review, change, or delete it at any time on the Manage Family
+        page. We keep it to a first name, grade, and school, and children&rsquo;s
+        details are never sold, shared for advertising, or used to train AI
+        models. School emails you forward may mention your children; we read
+        them only to create your reminders and erase their contents within
+        about a day.
       </p>
 
       <h2>Security</h2>

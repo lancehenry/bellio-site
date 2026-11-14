@@ -12,7 +12,7 @@ const site = {
   governingState: "Kansas",
   // Fill in once Twilio gives you the number.
   smsNumber: "(866) 456-3681",
-  lastUpdated: "November 11, 2026",
+  lastUpdated: "November 14, 2026",
 
   // Pricing. Change these and redeploy; the pricing page, footer link, and FAQ follow.
   pricing: {
