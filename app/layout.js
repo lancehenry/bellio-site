@@ -1,12 +1,26 @@
 import "./globals.css";
 import Link from "next/link";
 import site from "@/site.config";
+import HeaderCta from "./HeaderCta";
 
 export const metadata = {
   title: `${site.name} — School emails, turned into texts you'll actually read`,
   description:
     "Forward your school emails to Bellio and get a short text the night before anything you need to know or do.",
   metadataBase: new URL(site.url),
+  openGraph: {
+    type: "website",
+    siteName: site.name,
+    url: site.url,
+    title: `${site.name}: school emails, turned into texts you'll actually read`,
+    description:
+      "Forward school emails and flyers. Bellio texts you the night before picture day, early release, and anything you need to send. Free during the beta.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${site.name}: school emails, turned into texts you'll actually read`,
+    description: "Forward school emails and flyers. Bellio texts you the night before. Free during the beta.",
+  },
 };
 
 function BellIcon() {
@@ -33,9 +47,7 @@ export default function RootLayout({ children }) {
               </span>
               {site.name}
             </Link>
-            <Link href="/#signup" className="header-cta">
-              Sign up
-            </Link>
+            <HeaderCta />
           </div>
         </header>
 
@@ -45,7 +57,7 @@ export default function RootLayout({ children }) {
           <div className="container footer-inner">
             <p>
               © 2026 {site.legalName}. Questions?{" "}
-              <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
+              <a className="footer-email" href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>
             </p>
             <nav>
               <Link href="/faq">FAQ</Link>

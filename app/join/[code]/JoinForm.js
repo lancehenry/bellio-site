@@ -71,7 +71,7 @@ export default function JoinForm({ code }) {
         <input name="phone" type="tel" autoComplete="tel" placeholder="(555) 555-5555" required />
       </label>
       <label>
-        Email <span className="optional">(optional)</span>
+        <span>Email <span className="optional">(optional)</span></span>
         <input name="email" type="email" autoComplete="email" />
       </label>
       <label className="consent">

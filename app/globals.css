@@ -464,4 +464,54 @@ h2 { font-size: 2rem; letter-spacing: -.02em; font-weight: 700; color: var(--tex
 .kids .kid-rule { color: var(--accent-2); }
 .family .kid-nudge { margin: 0 0 4px; }
 .family .row.needs-info { border-left: 3px solid var(--accent-2); padding-left: 10px; }
-.family .row.needs-info .link-btn:not(.danger) { color: var(--accent-2); font-weight: 600; }
+.family .row.needs-info .link-btn:not(.danger):not(.subtle) { color: var(--accent-2); font-weight: 600; }
+
+/* ---- UX pass (Nov 13) ---- */
+/* Hero text bubble shows the real text layout */
+.bubble.sms { display: grid; gap: 2px; font-size: .9rem; line-height: 1.45; max-width: 100%; }
+.bubble.sms .sms-head { font-weight: 600; margin-bottom: 4px; }
+.bubble.sms .sms-label { font-weight: 600; color: var(--accent-2); margin-top: 6px; }
+.bubble.sms .sms-stop { color: var(--muted); font-size: .82rem; margin-top: 8px; }
+
+/* Reassurance row by the signup form */
+.reassure { list-style: none; padding: 0; margin: 24px 0; display: grid; gap: 14px; }
+.reassure li { display: grid; gap: 2px; padding-left: 26px; position: relative; }
+.reassure li::before {
+  content: ""; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.reassure li::after {
+  content: ""; position: absolute; left: 5px; top: 8px; width: 6px; height: 4px;
+  border-left: 2px solid var(--accent-2); border-bottom: 2px solid var(--accent-2); transform: rotate(-45deg);
+}
+.reassure strong { color: var(--text); font-size: .98rem; }
+.reassure span { color: var(--muted); font-size: .92rem; }
+
+/* Bigger, calmer tap targets on Manage Family and copy buttons */
+.family .link-btn { min-height: 44px; padding: 0; display: inline-flex; align-items: center; }
+.family .row-actions { gap: 8px 16px; }
+.link-btn.subtle { color: var(--muted); font-weight: 600; }
+.link-btn.subtle:hover { color: var(--text); }
+.copy-btn { min-height: 44px; }
+
+/* Footer email is easier to tap */
+.footer-email { display: inline-block; padding: 10px 0; }
+
+/* Loading state */
+.loading-card { display: flex; align-items: center; gap: 12px; }
+.loading-card .hint { margin: 0; }
+.spinner {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  border: 2px solid var(--line); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+
+/* Not found page */
+.not-found { padding-top: 88px; padding-bottom: 104px; max-width: 680px; }
+.not-found h1 { font-size: clamp(2rem, 5vw, 2.6rem); margin: 8px 0 16px; }
+.not-found .lede { margin-bottom: 28px; }
+.not-found-links { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.not-found .hint a { color: var(--accent-2); }

@@ -42,12 +42,16 @@ export default function Home() {
 
           <div className="phone" aria-label="Example Bellio text message">
             <div className="phone-top">{site.name}</div>
-            <div className="bubble">
-              Tomorrow (Thu 11/12): Picture day for Emma. Wear a collared
-              shirt.
-            </div>
-            <div className="bubble">
-              Also: $5 for the field trip is due Friday. Reply STOP to opt out.
+            <div className="bubble sms">
+              <span className="sms-head">Bellio: Tomorrow (Thu 11/19):</span>
+              <span className="sms-label">Emma:</span>
+              <span>- Picture day: wear a collared shirt</span>
+              <span className="sms-label">Jack:</span>
+              <span>- PJ day: wear pajamas to school</span>
+              <span className="sms-label">Both:</span>
+              <span>- Send $5 for the field trip</span>
+              <span>- Coming up: no school 11/23 to 11/27</span>
+              <span className="sms-stop">Reply STOP to opt out.</span>
             </div>
           </div>
         </div>
@@ -77,6 +81,29 @@ export default function Home() {
               we&rsquo;ll send your personal forwarding address and setup
               steps.
             </p>
+            <ul className="reassure">
+              <li>
+                {site.pricing?.beta ? (
+                  <>
+                    <strong>Free during the beta</strong>
+                    <span>No card needed to sign up.</span>
+                  </>
+                ) : (
+                  <>
+                    <strong>{site.pricing?.trialDays || 30}-day free trial</strong>
+                    <span>Then one price per family. Cancel anytime.</span>
+                  </>
+                )}
+              </li>
+              <li>
+                <strong>Private by design</strong>
+                <span>Only reads emails you forward, and erases them within a day.</span>
+              </li>
+              <li>
+                <strong>The whole family</strong>
+                <span>Both parents on their own phones, and all your kids.</span>
+              </li>
+            </ul>
             <p className="faq-link">
               Questions first? <Link href="/faq">Read the FAQ</Link>.
             </p>

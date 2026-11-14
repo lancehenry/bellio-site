@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import site from "@/site.config";
 import CopyField from "../CopyField";
+import { gradeLabel } from "@/lib/grades";
 import BotCheck, { botCheckFields, resetBotCheck } from "../BotCheck";
 
 async function api(method, body) {
@@ -58,7 +59,16 @@ export default function FamilyPage() {
     }
   }
 
-  if (state === "loading") return <section className="container family"><p className="hint">Loading…</p></section>;
+  if (state === "loading")
+    return (
+      <section className="container family" aria-busy="true">
+        <p className="eyebrow">Manage family</p>
+        <div className="setup-card loading-card">
+          <span className="spinner" aria-hidden="true" />
+          <p className="hint">Loading your family&hellip;</p>
+        </div>
+      </section>
+    );
   if (state === "signedOut") return <SignIn />;
   if (state === "done") {
     return (
@@ -144,7 +154,7 @@ export default function FamilyPage() {
               </div>
               {isOwner && !a.isMe && (
                 <button
-                  className="link-btn danger"
+                  className="link-btn subtle"
                   onClick={() =>
                     window.confirm(`Remove ${a.firstName} from your family? They'll stop getting reminders right away.`) &&
                     act({ action: "removeMember", memberId: a.id }, `${a.firstName} was removed.`)
@@ -181,7 +191,7 @@ export default function FamilyPage() {
           <>
             <p className="hint">Text <strong>WEEK</strong> to {site.smsNumber} anytime to see the next 7 days.</p>
             <button
-              className="link-btn danger"
+              className="link-btn subtle"
               onClick={() =>
                 window.confirm("Stop Bellio texts to your phone? Others in your family will still get them.") &&
                 act({ action: "stopTexts" }, "Texts to you are off.")
@@ -244,7 +254,7 @@ function Upcoming({ items, onRemove }) {
                   {d.items.map((i) => (
                     <li key={i.id} className={`row${i.headsUp ? " heads-up" : ""}`}>
                       <div>
-                        <strong>{i.title}</strong>
+                        <strong>{i.headsUp ? i.title.replace(/^coming up:\s*/i, "Heads-up: ") : i.title}</strong>
                         {i.who && <span className="who"> {i.who}</span>}
                         {(i.action || i.texted) && (
                           <div className="hint">
@@ -255,7 +265,7 @@ function Upcoming({ items, onRemove }) {
                         )}
                       </div>
                       <button
-                        className="link-btn danger"
+                        className="link-btn subtle"
                         aria-label={`Remove ${i.title}`}
                         onClick={() =>
                           window.confirm(`Remove "${i.title}"? ${site.name} won't text it, even if it shows up in another email.`) &&
@@ -399,7 +409,7 @@ function KidRow({ kid, canRemove, needsDetails, onSave, setupUrl }) {
       <li className={`row${missing ? " needs-info" : ""}`}>
         <div>
           <strong>{kid.firstName}</strong>
-          <div className="hint">{[kid.grade && `Grade ${kid.grade}`, kid.school].filter(Boolean).join(" · ") || "No grade or school yet"}</div>
+          <div className="hint">{[gradeLabel(kid.grade), kid.school].filter(Boolean).join(" · ") || "No grade or school yet"}</div>
         </div>
         <div className="row-actions">
           <button className="link-btn" onClick={() => { setForm(kid); setEditing(true); }}>
@@ -407,7 +417,7 @@ function KidRow({ kid, canRemove, needsDetails, onSave, setupUrl }) {
           </button>
           {canRemove && (
             <button
-              className="link-btn danger"
+              className="link-btn subtle"
               onClick={() =>
                 window.confirm(`Remove ${kid.firstName}? Reminders just for ${kid.firstName} will be deleted.`) &&
                 onSave({ action: "removeKid", kidId: kid.id }, `${kid.firstName} was removed.`)
